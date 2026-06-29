@@ -1,1 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="房貸 × ETF 現金流儀表板 — 掌握房貸、投資與現金流" />
+  <title>房貸 × ETF 現金流儀表板</title>
+
+  <!-- Google Fonts：Inter 提供清晰的數字顯示，支援 tabular-nums -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ==========================================
+       頂部導覽列
+       之後可在此加入：帳號圖示、通知鈴聲、設定齒輪
+  ========================================== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="header-icon">⬡</span>
+        <div>
+          <h1 class="header-title">房貸 × ETF</h1>
+          <p class="header-subtitle">現金流儀表板</p>
+        </div>
+      </div>
+      <!-- 日期標籤：由 script.js 動態填入 -->
+      <div class="header-date" id="headerDate"></div>
+    </div>
+  </header>
+
+
+  <!-- ==========================================
+       主要內容區域
+  ========================================== -->
+  <main class="app-main">
+
+    <!-- ──────────────────────────────────────
+         區塊 1：房貸資訊卡
+         未來擴充：點擊進入「房貸試算頁」
+    ────────────────────────────────────── -->
+    <section class="card card--mortgage" aria-label="房貸資訊">
+      <div class="card-header">
+        <span class="card-icon">🏠</span>
+        <h2 class="card-title">房貸資訊</h2>
+        <span class="card-badge badge--info">浮動利率</span>
+      </div>
+
+      <div class="card-metrics">
+        <!-- 主要指標：每月房貸 -->
+        <div class="metric metric--primary">
+          <span class="metric-label">每月還款</span>
+          <span class="metric-value" id="mortgageMonthly">-- </span>
+          <span class="metric-unit">元</span>
+        </div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <!-- 次要指標列 -->
+      <div class="card-stats">
+        <div class="stat">
+          <span class="stat-label">剩餘本金</span>
+          <span class="stat-value" id="mortgagePrincipal">--</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat">
+          <span class="stat-label">目前利率</span>
+          <span class="stat-value stat--highlight" id="mortgageRate">--</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat">
+          <span class="stat-label">剩餘期數</span>
+          <span class="stat-value" id="mortgagePeriods">--</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────
+         區塊 2：ETF 投資卡
+         未來擴充：0050 定期定額進度、加碼觸發條件
+    ────────────────────────────────────── -->
+    <section class="card card--etf" aria-label="ETF 投資">
+      <div class="card-header">
+        <span class="card-icon">📈</span>
+        <h2 class="card-title">ETF 投資</h2>
+        <span class="card-badge badge--success" id="etfReturnBadge">+0.00%</span>
+      </div>
+
+      <div class="card-metrics">
+        <!-- 主要指標：持有市值 -->
+        <div class="metric metric--primary">
+          <span class="metric-label">持有市值</span>
+          <span class="metric-value metric--green" id="etfMarketValue">--</span>
+          <span class="metric-unit">元</span>
+        </div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <div class="card-stats">
+        <div class="stat">
+          <span class="stat-label">投入成本</span>
+          <span class="stat-value" id="etfCost">--</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat">
+          <span class="stat-label">未實現損益</span>
+          <span class="stat-value stat--green" id="etfProfit">--</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat">
+          <span class="stat-label">報酬率</span>
+          <span class="stat-value stat--green" id="etfReturnRate">--</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────
+         區塊 3：現金管理卡
+         未來擴充：各銀行帳戶明細、定存到期提醒
+    ────────────────────────────────────── -->
+    <section class="card card--cash" aria-label="現金管理">
+      <div class="card-header">
+        <span class="card-icon">💰</span>
+        <h2 class="card-title">現金管理</h2>
+      </div>
+
+      <div class="card-metrics">
+        <!-- 主要指標：緊急預備金 -->
+        <div class="metric metric--primary">
+          <span class="metric-label">緊急預備金</span>
+          <span class="metric-value" id="cashReserve">--</span>
+          <span class="metric-unit">元</span>
+        </div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <div class="card-stats">
+        <div class="stat">
+          <span class="stat-label">可加碼資金</span>
+          <span class="stat-value stat--orange" id="cashAvailable">--</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat">
+          <span class="stat-label">定存活存</span>
+          <span class="stat-value" id="cashDeposit">--</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat">
+          <span class="stat-label">活儲利息</span>
+          <span class="stat-value stat--green" id="cashInterest">--</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────
+         區塊 4：本月現金流卡
+         未來擴充：每月自動結算、支出分類圖表
+    ────────────────────────────────────── -->
+    <section class="card card--cashflow" aria-label="本月現金流">
+      <div class="card-header">
+        <span class="card-icon">📊</span>
+        <h2 class="card-title">本月現金流</h2>
+        <!-- 結餘狀態：由 script.js 依正負值動態切換 class -->
+        <span class="card-badge" id="cashflowStatusBadge">計算中</span>
+      </div>
+
+      <!-- 現金流長條進度條 -->
+      <div class="cashflow-bar-wrap" aria-hidden="true">
+        <div class="cashflow-bar">
+          <div class="cashflow-bar-fill" id="cashflowBarFill"></div>
+        </div>
+        <div class="cashflow-bar-labels">
+          <span>支出</span>
+          <span>收入</span>
+        </div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <div class="card-stats">
+        <div class="stat">
+          <span class="stat-label">收入</span>
+          <span class="stat-value stat--green" id="cfIncome">--</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat">
+          <span class="stat-label">支出</span>
+          <span class="stat-value stat--red" id="cfExpense">--</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat">
+          <span class="stat-label">結餘</span>
+          <span class="stat-value stat--green" id="cfBalance">--</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ──────────────────────────────────────
+         底部大型 CTA 按鈕
+         之後每個功能模組都會有各自的按鈕或頁面
+    ────────────────────────────────────── -->
+    <div class="cta-wrap">
+      <button class="btn-cta" id="btnStart" onclick="handleStartButton()">
+        <span class="btn-icon">⚡</span>
+        開始試算
+      </button>
+      <p class="cta-hint">房貸 · 定期定額 · 加碼策略</p>
+    </div>
+
+  </main>
+
+
+  <!-- ==========================================
+       底部版權列
+  ========================================== -->
+  <footer class="app-footer">
+    <p>資料僅供參考 · 非投資建議</p>
+    <p id="footerYear"></p>
+  </footer>
+
+
+  <script src="script.js"></script>
+</body>
+</html>
+
+/* ============================================================
+   房貸 × ETF 現金流儀表板 — style.css
+   Mobile First 設計，深色金融風格
+   ============================================================
+
+   目錄
+   1. CSS 變數（設計 Token）
+   2. Reset & Base
+   3. 版面結構（Header / Main / Footer）
+   4. 卡片元件
+   5. 指標數字（Metric）
+   6. 統計列（Stats Row）
+   7. 現金流進度條
+   8. CTA 按鈕
+   9. 狀態色彩（顏色 utility）
+  10. 動畫
+  11. RWD（平板以上）
+   ============================================================ */
+
+
+/* ──────────────────────────────────────
+   1. CSS 變數（設計 Token）
+   修改這裡即可全域調整配色與間距
+────────────────────────────────────── */
+:root {
+  /* 背景層次 */
+  --color-bg-base:     #0D1117;   /* 最底層背景 */
+  --color-bg-card:     #161B22;   /* 卡片背景 */
+  --color-bg-stat:     #1C2230;   /* 統計格背景 */
+  --color-border:      #1F2937;   /* 分隔線、邊框 */
+  --color-border-subtle: #252D3D; /* 較淡的邊框 */
+
+  /* 文字 */
+  --color-text-primary:   #E6EDF3; /* 主要文字 */
+  --color-text-secondary: #8B949E; /* 次要文字、標籤 */
+  --color-text-muted:     #484F58; /* 最淡文字 */
+
+  /* 重點色 */
+  --color-green:    #22D3A8;   /* 正報酬、結餘正數（偏青綠，非一般正綠） */
+  --color-green-bg: #0D2E26;   /* 綠色背景輝光 */
+  --color-orange:   #F97316;   /* 提醒、可加碼 */
+  --color-orange-bg:#2D1A0A;
+  --color-red:      #EF4444;   /* 警示、支出 */
+  --color-red-bg:   #2D1010;
+  --color-blue:     #38BDF8;   /* 資訊性標籤 */
+  --color-blue-bg:  #0C1E30;
+
+  /* 卡片左側邊線（各卡片自訂顏色） */
+  --card-accent-mortgage: #60A5FA; /* 藍 */
+  --card-accent-etf:      #22D3A8; /* 青綠 */
+  --card-accent-cash:     #F97316; /* 橘 */
+  --card-accent-cashflow: #A78BFA; /* 紫 */
+
+  /* 間距 */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+
+  /* 圓角 */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+
+  /* 字體 */
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+
+  /* 動畫時間 */
+  --duration-fast:   150ms;
+  --duration-normal: 280ms;
+}
+
+
+/* ──────────────────────────────────────
+   2. Reset & Base
+────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* 防止 iOS 字體自動縮放 */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-main);
+  font-size: 15px;
+  line-height: 1.6;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  min-height: 100dvh;           /* 使用 dvh 支援手機瀏覽器工具列 */
+  /* 細緻的背景網格，營造終端機感 */
+  background-image:
+    linear-gradient(rgba(34, 211, 168, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 168, 0.015) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+h1, h2, h3 {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+button {
+  font-family: var(--font-main);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* 無障礙：鍵盤焦點樣式 */
+:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+
+/* ──────────────────────────────────────
+   3. 版面結構
+────────────────────────────────────── */
+
+/* Header */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13, 17, 23, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-md) var(--space-md);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* 品牌六邊形圖示 */
+.header-icon {
+  font-size: 24px;
+  color: var(--color-green);
+  filter: drop-shadow(0 0 8px var(--color-green));
+  line-height: 1;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--color-text-primary);
+}
+
+.header-subtitle {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.header-date {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-align: right;
+  line-height: 1.4;
+}
+
+/* Main 主要內容 */
+.app-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  padding-bottom: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Footer */
+.app-footer {
+  text-align: center;
+  padding: var(--space-lg) var(--space-md);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.8;
+  border-top: 1px solid var(--color-border);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+
+/* ──────────────────────────────────────
+   4. 卡片元件
+   每張卡片透過左側彩色邊線區分類別
+────────────────────────────────────── */
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  position: relative;
+  overflow: hidden;
+  /* 卡片進場動畫（配合 JS 的 .card--visible） */
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity var(--duration-normal) ease,
+    transform var(--duration-normal) ease;
+}
+
+.card--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 左側彩色邊線 */
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: var(--space-lg);
+  bottom: var(--space-lg);
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+}
+
+.card--mortgage::before { background: var(--card-accent-mortgage); }
+.card--etf::before      { background: var(--card-accent-etf); }
+.card--cash::before     { background: var(--card-accent-cash); }
+.card--cashflow::before { background: var(--card-accent-cashflow); }
+
+/* 卡片頭部：圖示 + 標題 + 標籤 */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.card-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.2px;
+  flex: 1;
+}
+
+/* 標籤徽章 */
+.card-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+
+.badge--info {
+  background: var(--color-blue-bg);
+  color: var(--color-blue);
+}
+
+.badge--success {
+  background: var(--color-green-bg);
+  color: var(--color-green);
+}
+
+.badge--warning {
+  background: var(--color-orange-bg);
+  color: var(--color-orange);
+}
+
+.badge--danger {
+  background: var(--color-red-bg);
+  color: var(--color-red);
+}
+
+/* 分隔線 */
+.card-divider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: var(--space-md) 0;
+}
+
+
+/* ──────────────────────────────────────
+   5. 指標數字（Metric）
+   主要大數字顯示區
+────────────────────────────────────── */
+.card-metrics {
+  margin-bottom: var(--space-xs);
+}
+
+.metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  /* tabular-nums：讓數字等寬，切換數值時不跳動 */
+  font-variant-numeric: tabular-nums;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+/* 綠色大數字（ETF 市值、正報酬） */
+.metric--green {
+  color: var(--color-green);
+  text-shadow: 0 0 24px rgba(34, 211, 168, 0.3);
+}
+
+.metric-unit {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+
+/* ──────────────────────────────────────
+   6. 統計列（Stats Row）
+   卡片下方的次要資訊欄
+────────────────────────────────────── */
+.card-stats {
+  display: flex;
+  align-items: stretch;
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-sm) var(--space-xs);
+  background: var(--color-bg-stat);
+  border-radius: var(--radius-sm);
+}
+
+.stat:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.stat:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+/* 分隔線（用細邊框模擬） */
+.stat-separator {
+  width: 1px;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.stat-value {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.3px;
+}
+
+/* 顏色 utility（用於 stat-value） */
+.stat--green   { color: var(--color-green); }
+.stat--orange  { color: var(--color-orange); }
+.stat--red     { color: var(--color-red); }
+.stat--highlight { color: var(--color-orange); }
+
+
+/* ──────────────────────────────────────
+   7. 現金流進度條
+   視覺化支出 / 收入比例
+────────────────────────────────────── */
+.cashflow-bar-wrap {
+  margin-bottom: var(--space-md);
+}
+
+.cashflow-bar {
+  height: 6px;
+  background: var(--color-bg-stat);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+/* 進度條填充：由 JS 設定 width */
+.cashflow-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--color-red) 0%, var(--color-green) 100%);
+  width: 0%;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cashflow-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+
+/* ──────────────────────────────────────
+   8. CTA 按鈕
+────────────────────────────────────── */
+.cta-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+}
+
+.btn-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 360px;
+  padding: 18px var(--space-xl);
+  background: linear-gradient(135deg, #064E3B 0%, #065F46 50%, #047857 100%);
+  color: var(--color-green);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(34, 211, 168, 0.3);
+  /* 按鈕發光效果 */
+  box-shadow:
+    0 0 20px rgba(34, 211, 168, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
+    background var(--duration-fast) ease;
+  /* 防止手機雙擊縮放 */
+  touch-action: manipulation;
+}
+
+.btn-cta:hover {
+  background: linear-gradient(135deg, #065F46 0%, #047857 50%, #059669 100%);
+  box-shadow:
+    0 0 32px rgba(34, 211, 168, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.btn-cta:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 12px rgba(34, 211, 168, 0.1);
+}
+
+.btn-icon {
+  font-size: 18px;
+}
+
+.cta-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+}
+
+
+/* ──────────────────────────────────────
+   9. 數字計數動畫 class
+   JS 數字滾動時短暫加上，產生閃爍感
+────────────────────────────────────── */
+.number-update {
+  animation: numberPop 300ms ease forwards;
+}
+
+@keyframes numberPop {
+  0%   { opacity: 0.4; transform: scale(0.97); }
+  60%  { opacity: 1;   transform: scale(1.02); }
+  100% { opacity: 1;   transform: scale(1); }
+}
+
+
+/* ──────────────────────────────────────
+   10. 動畫
+────────────────────────────────────── */
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 尊重使用者的「減少動態」系統設定 */
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .cashflow-bar-fill {
+    transition: none;
+  }
+}
+
+
+/* ──────────────────────────────────────
+   11. RWD：平板以上（≥ 600px）
+────────────────────────────────────── */
+@media (min-width: 600px) {
+  .app-main {
+    padding: var(--space-xl) var(--space-xl);
+    gap: var(--space-lg);
+  }
+
+  .metric-value {
+    font-size: 44px;
+    letter-spacing: -2px;
+  }
+
+  .stat-value {
+    font-size: 15px;
+  }
+
+  .btn-cta {
+    padding: 20px var(--space-xl);
+    font-size: 18px;
+  }
+}
+
+/* 桌機（≥ 900px）：雙欄卡片佈局 */
+@media (min-width: 900px) {
+  .app-main {
+    max-width: 900px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+
+  /* CTA 按鈕橫跨兩欄 */
+  .cta-wrap {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ============================================================
+   房貸 × ETF 現金流儀表板 — script.js
+   ============================================================
+
+   目錄
+   1. 假資料設定（未來替換成真實資料來源）
+   2. 工具函式（格式化金額、百分比）
+   3. 渲染函式（各卡片資料填入）
+   4. 現金流進度條
+   5. 頁面初始化
+   6. 事件處理（按鈕等互動）
+   ============================================================ */
+
+
+/* ──────────────────────────────────────
+   1. 假資料設定
+   ★ 之後這一區可以替換成：
+     - 使用者手動輸入（localStorage 儲存）
+     - 讀取 JSON 設定檔
+     - 串接外部 API（如台灣銀行利率 API）
+────────────────────────────────────── */
+const MOCK_DATA = {
+
+  // 房貸區塊
+  mortgage: {
+    monthlyPayment: 28500,   // 每月還款（元）
+    remainingPrincipal: 6820000, // 剩餘本金（元）
+    interestRate: 2.16,      // 目前利率（%）
+    remainingPeriods: 252,   // 剩餘期數（月）
+  },
+
+  // ETF 投資區塊
+  etf: {
+    marketValue: 1248000,    // 持有市值（元）
+    costBasis: 1100000,      // 投入成本（元）
+    // 報酬率與未實現損益由程式自動計算
+  },
+
+  // 現金管理區塊
+  cash: {
+    emergencyFund: 450000,   // 緊急預備金（元）
+    available: 65000,        // 可加碼資金（元）
+    fixedDeposit: 380000,    // 定存（元）
+    monthlyInterest: 1420,   // 本月活儲利息（元）
+  },
+
+  // 本月現金流區塊
+  cashflow: {
+    income: 95000,           // 本月收入（元）
+    expense: 68500,          // 本月支出（元）
+    // 結餘由程式自動計算
+  },
+};
+
+
+/* ──────────────────────────────────────
+   2. 工具函式
+────────────────────────────────────── */
+
+/**
+ * 將數字格式化為台灣常用金額顯示
+ * 例：1248000 → "1,248,000"
+ * 例：1248000, true → "124.8萬"（之後可啟用簡短模式）
+ *
+ * @param {number} num - 要格式化的數字
+ * @param {boolean} [compact=false] - 是否使用萬為單位（預留）
+ * @returns {string}
+ */
+function formatAmount(num, compact = false) {
+  if (num === null || num === undefined) return '--';
+
+  if (compact && Math.abs(num) >= 10000) {
+    return (num / 10000).toFixed(1) + '萬';
+  }
+
+  return new Intl.NumberFormat('zh-TW').format(Math.round(num));
+}
+
+/**
+ * 將小數格式化為百分比
+ * 例：0.1345 → "+13.45%"
+ *
+ * @param {number} rate - 小數形式的比率（0.1345 代表 13.45%）
+ * @param {boolean} [showSign=true] - 是否顯示正負號
+ * @returns {string}
+ */
+function formatPercent(rate, showSign = true) {
+  if (rate === null || rate === undefined) return '--';
+  const pct = (rate * 100).toFixed(2);
+  return showSign && rate > 0 ? `+${pct}%` : `${pct}%`;
+}
+
+/**
+ * 安全取得 DOM 元素，避免 null 錯誤
+ *
+ * @param {string} id - 元素 id
+ * @returns {HTMLElement|null}
+ */
+function el(id) {
+  return document.getElementById(id);
+}
+
+/**
+ * 設定元素文字，並觸發數字更新動畫
+ *
+ * @param {string} id - 元素 id
+ * @param {string} text - 要顯示的文字
+ */
+function setText(id, text) {
+  const element = el(id);
+  if (!element) return;
+
+  element.textContent = text;
+
+  // 觸發數字閃爍動畫（CSS keyframe）
+  element.classList.remove('number-update');
+  // 強制 reflow，讓動畫可以重新播放
+  void element.offsetWidth;
+  element.classList.add('number-update');
+}
+
+
+/* ──────────────────────────────────────
+   3. 渲染函式
+────────────────────────────────────── */
+
+/**
+ * 渲染「房貸資訊」卡片
+ */
+function renderMortgage() {
+  const d = MOCK_DATA.mortgage;
+
+  setText('mortgageMonthly',  formatAmount(d.monthlyPayment));
+  setText('mortgagePrincipal', formatAmount(d.remainingPrincipal) + ' 元');
+  setText('mortgageRate',      d.interestRate.toFixed(2) + '%');
+  setText('mortgagePeriods',   d.remainingPeriods + ' 月');
+}
+
+/**
+ * 渲染「ETF 投資」卡片
+ * 自動計算未實現損益與報酬率
+ */
+function renderETF() {
+  const d = MOCK_DATA.etf;
+
+  const profit = d.marketValue - d.costBasis;
+  const returnRate = profit / d.costBasis; // 小數形式
+
+  setText('etfMarketValue', formatAmount(d.marketValue));
+  setText('etfCost',        formatAmount(d.costBasis) + ' 元');
+  setText('etfProfit',      (profit >= 0 ? '+' : '') + formatAmount(profit) + ' 元');
+  setText('etfReturnRate',  formatPercent(returnRate));
+
+  // 徽章：報酬率（帶正負號）
+  const badge = el('etfReturnBadge');
+  if (badge) {
+    badge.textContent = formatPercent(returnRate);
+    badge.className = 'card-badge ' + (profit >= 0 ? 'badge--success' : 'badge--danger');
+  }
+
+  // 未實現損益顏色
+  const profitEl = el('etfProfit');
+  if (profitEl) {
+    profitEl.className = 'stat-value ' + (profit >= 0 ? 'stat--green' : 'stat--red');
+  }
+  const rateEl = el('etfReturnRate');
+  if (rateEl) {
+    rateEl.className = 'stat-value ' + (returnRate >= 0 ? 'stat--green' : 'stat--red');
+  }
+}
+
+/**
+ * 渲染「現金管理」卡片
+ */
+function renderCash() {
+  const d = MOCK_DATA.cash;
+
+  setText('cashReserve',   formatAmount(d.emergencyFund));
+  setText('cashAvailable', formatAmount(d.available) + ' 元');
+  setText('cashDeposit',   formatAmount(d.fixedDeposit) + ' 元');
+  setText('cashInterest',  '+' + formatAmount(d.monthlyInterest) + ' 元');
+}
+
+/**
+ * 渲染「本月現金流」卡片
+ * 並更新進度條與狀態徽章
+ */
+function renderCashflow() {
+  const d = MOCK_DATA.cashflow;
+
+  const balance = d.income - d.expense;
+
+  setText('cfIncome',  '+' + formatAmount(d.income) + ' 元');
+  setText('cfExpense', '-' + formatAmount(d.expense) + ' 元');
+  setText('cfBalance', (balance >= 0 ? '+' : '') + formatAmount(balance) + ' 元');
+
+  // 結餘顏色
+  const balanceEl = el('cfBalance');
+  if (balanceEl) {
+    balanceEl.className = 'stat-value ' + (balance >= 0 ? 'stat--green' : 'stat--red');
+  }
+
+  // 狀態徽章
+  const badge = el('cashflowStatusBadge');
+  if (badge) {
+    if (balance > 0) {
+      badge.textContent = '現金正流';
+      badge.className = 'card-badge badge--success';
+    } else if (balance < 0) {
+      badge.textContent = '現金負流';
+      badge.className = 'card-badge badge--danger';
+    } else {
+      badge.textContent = '收支平衡';
+      badge.className = 'card-badge badge--info';
+    }
+  }
+
+  // 進度條（支出佔收入的比例）
+  renderCashflowBar(d.expense, d.income);
+}
+
+
+/* ──────────────────────────────────────
+   4. 現金流進度條
+────────────────────────────────────── */
+
+/**
+ * 更新現金流進度條寬度
+ * 進度條代表「支出佔收入的比例」
+ * 100% = 支出剛好等於收入；超過 100% 則顯示為滿版（警示）
+ *
+ * @param {number} expense - 支出金額
+ * @param {number} income  - 收入金額
+ */
+function renderCashflowBar(expense, income) {
+  const fill = el('cashflowBarFill');
+  if (!fill || income <= 0) return;
+
+  const ratio = Math.min(expense / income, 1); // 最大 100%
+  const percentage = (ratio * 100).toFixed(1);
+
+  // 延遲一幀，確保 CSS transition 正常觸發
+  requestAnimationFrame(() => {
+    fill.style.width = percentage + '%';
+
+    // 進度條顏色：支出比例越高，越偏紅
+    if (ratio >= 0.9) {
+      fill.style.background = 'var(--color-red)';
+    } else if (ratio >= 0.7) {
+      fill.style.background = 'linear-gradient(90deg, var(--color-orange) 0%, var(--color-red) 100%)';
+    } else {
+      fill.style.background = 'linear-gradient(90deg, var(--color-green) 0%, var(--color-orange) 100%)';
+    }
+  });
+}
+
+
+/* ──────────────────────────────────────
+   5. 頁面初始化
+────────────────────────────────────── */
+
+/**
+ * 填入頂部日期資訊
+ */
+function renderHeaderDate() {
+  const dateEl = el('headerDate');
+  if (!dateEl) return;
+
+  const now = new Date();
+  const options = { month: 'long', year: 'numeric' };
+  const monthStr = now.toLocaleDateString('zh-TW', options);
+
+  dateEl.innerHTML = `
+    <span>${monthStr}</span><br>
+    <span>更新時間 ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}</span>
+  `;
+}
+
+/**
+ * 填入底部年份
+ */
+function renderFooterYear() {
+  const el = document.getElementById('footerYear');
+  if (el) el.textContent = `© ${new Date().getFullYear()} 個人財務儀表板`;
+}
+
+/**
+ * 卡片依序滑入動畫
+ * 使用 IntersectionObserver 支援捲動觸發（桌機）
+ * 手機初次載入直接依時間差觸發
+ */
+function animateCards() {
+  const cards = document.querySelectorAll('.card');
+
+  cards.forEach((card, index) => {
+    setTimeout(() => {
+      card.classList.add('card--visible');
+    }, 80 * index); // 每張卡片相差 80ms
+  });
+}
+
+/**
+ * 主要初始化函式
+ * DOMContentLoaded 後執行
+ */
+function init() {
+  // 渲染所有卡片資料
+  renderMortgage();
+  renderETF();
+  renderCash();
+  renderCashflow();
+
+  // 渲染日期與版權
+  renderHeaderDate();
+  renderFooterYear();
+
+  // 啟動進場動畫（給 CSS 一幀準備時間）
+  requestAnimationFrame(animateCards);
+}
+
+// DOM 準備完成後執行初始化
+document.addEventListener('DOMContentLoaded', init);
+
+
+/* ──────────────────────────────────────
+   6. 事件處理
+────────────────────────────────────── */
+
+/**
+ * 「開始試算」按鈕點擊事件
+ * ★ 第二版：替換此函式為實際的試算功能或頁面跳轉
+ */
+function handleStartButton() {
+  // 按鈕觸覺回饋（支援 Haptics 的行動裝置）
+  if (navigator.vibrate) {
+    navigator.vibrate(30);
+  }
+
+  // 第二版功能開發中提示
+  const message =
+    '⚡ 第二版功能開發中\n\n' +
+    '即將推出：\n' +
+    '• 房貸試算（本息 / 本金攤還）\n' +
+    '• ETF 定期定額模擬\n' +
+    '• 加碼策略（跌幅觸發）\n' +
+    '• 25 個月現金流規劃';
+
+  alert(message);
+}
+
+/* ──────────────────────────────────────
+   預留擴充區域
+   未來功能模組可在此加入：
+
+   // 房貸試算
+   function calcMortgage(principal, rate, periods) { ... }
+
+   // ETF 加碼觸發判斷
+   function checkDipTrigger(currentPrice, ma200) { ... }
+
+   // 讀寫 localStorage（本地儲存使用者設定）
+   function saveSettings(data) { ... }
+   function loadSettings() { ... }
+
+   // 定期更新（setInterval 每小時重新整理資料）
+   // setInterval(init, 60 * 60 * 1000);
+────────────────────────────────────── */
 # mortgage-etf-dashboard
