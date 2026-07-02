@@ -574,3 +574,264 @@ button {
     grid-column: 1 / -1;
   }
 }
+
+
+/* ============================================================
+   第二版新增樣式：輸入表單 + 試算結果卡片
+   ============================================================ */
+
+/* ──────────────────────────────────────
+   輸入表單展開面板
+   預設 max-height: 0，展開時改為大值，
+   搭配 overflow:hidden 實現滑動動畫
+────────────────────────────────────── */
+.form-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-panel.form-panel--open {
+  max-height: 3000px; /* 大於實際內容高度即可 */
+}
+
+.form-panel-inner {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* 表單分組 */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.form-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.form-section-icon {
+  font-size: 18px;
+}
+
+.form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.3px;
+}
+
+/* 每一列輸入欄位 */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.3px;
+}
+
+/* 輸入框 */
+.form-input {
+  background: var(--color-bg-stat);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-main);
+  font-size: 16px; /* 16px 防止 iOS 自動縮放 */
+  font-variant-numeric: tabular-nums;
+  padding: 12px var(--space-md);
+  width: 100%;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+  /* 移除 number input 的上下箭頭 */
+  -moz-appearance: textfield;
+}
+.form-input::-webkit-outer-spin-button,
+.form-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.form-input::placeholder {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-green);
+  box-shadow: 0 0 0 3px rgba(34, 211, 168, 0.12);
+}
+
+/* 輸入框驗證錯誤狀態 */
+.form-input.input--error {
+  border-color: var(--color-red);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+/* 分組之間的分隔線 */
+.form-divider {
+  height: 1px;
+  background: var(--color-border-subtle);
+}
+
+/* 按鈕列 */
+.form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  padding-top: var(--space-xs);
+}
+
+/* 確認試算按鈕 */
+.btn-calc {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 15px;
+  background: linear-gradient(135deg, #064E3B, #047857);
+  color: var(--color-green);
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(34, 211, 168, 0.25);
+  box-shadow: 0 0 16px rgba(34, 211, 168, 0.12);
+  transition: all var(--duration-fast);
+  touch-action: manipulation;
+}
+.btn-calc:hover {
+  background: linear-gradient(135deg, #065F46, #059669);
+  box-shadow: 0 0 24px rgba(34, 211, 168, 0.22);
+}
+.btn-calc:active { transform: scale(0.98); }
+
+/* 清除重填按鈕 */
+.btn-reset {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 15px;
+  background: var(--color-bg-stat);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: all var(--duration-fast);
+  touch-action: manipulation;
+}
+.btn-reset:hover {
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+.btn-reset:active { transform: scale(0.98); }
+
+/* 錯誤提示 */
+.form-error {
+  font-size: 13px;
+  color: var(--color-red);
+  background: var(--color-red-bg);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: all var(--duration-normal);
+}
+.form-error.form-error--show {
+  padding: var(--space-sm) var(--space-md);
+  max-height: 80px;
+}
+
+/* CTA 按鈕展開狀態（收合表單時變色） */
+.btn-cta.btn-cta--active {
+  background: linear-gradient(135deg, #1C1C2E 0%, #2D1B69 100%);
+  color: #A78BFA;
+  border-color: rgba(167, 139, 250, 0.3);
+  box-shadow: 0 0 20px rgba(167, 139, 250, 0.15);
+}
+
+/* ──────────────────────────────────────
+   試算結果卡片
+────────────────────────────────────── */
+.card--result {
+  border-color: rgba(34, 211, 168, 0.2);
+  /* 進場動畫 */
+  animation: resultSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes resultSlideIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 結果分組 */
+.result-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.result-group-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* 每一行結果 */
+.result-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast);
+}
+.result-row:hover {
+  background: var(--color-bg-stat);
+}
+
+.result-key {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.result-val {
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.3px;
+}
+
+/* 結果數值顏色 */
+.result-val--primary { color: var(--color-green); font-size: 18px; }
+.result-val--green   { color: var(--color-green); }
+.result-val--orange  { color: var(--color-orange); }
+.result-val--red     { color: var(--color-red); }
+
+/* RWD：桌機雙欄時，表單和結果卡片各佔一欄 */
+@media (min-width: 900px) {
+  .form-panel  { grid-column: 1 / -1; }
+  .card--result { grid-column: 1 / -1; }
+  .cta-wrap    { grid-column: 1 / -1; }
+}
