@@ -5,19 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="房貸 × ETF 現金流儀表板 — 掌握房貸、投資與現金流" />
   <title>房貸 × ETF 現金流儀表板</title>
-
-  <!-- Google Fonts：Inter 提供清晰的數字顯示，支援 tabular-nums -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <!-- ==========================================
        頂部導覽列
-       之後可在此加入：帳號圖示、通知鈴聲、設定齒輪
   ========================================== -->
   <header class="app-header">
     <div class="header-inner">
@@ -28,81 +24,64 @@
           <p class="header-subtitle">現金流儀表板</p>
         </div>
       </div>
-      <!-- 日期標籤：由 script.js 動態填入 -->
       <div class="header-date" id="headerDate"></div>
     </div>
   </header>
 
-
-  <!-- ==========================================
-       主要內容區域
-  ========================================== -->
   <main class="app-main">
 
-    <!-- ──────────────────────────────────────
+    <!-- ══════════════════════════════════════
          區塊 1：房貸資訊卡
-         未來擴充：點擊進入「房貸試算頁」
-    ────────────────────────────────────── -->
+    ══════════════════════════════════════ -->
     <section class="card card--mortgage" aria-label="房貸資訊">
       <div class="card-header">
         <span class="card-icon">🏠</span>
         <h2 class="card-title">房貸資訊</h2>
-        <span class="card-badge badge--info">浮動利率</span>
+        <span class="card-badge badge--info">等額本息</span>
       </div>
-
       <div class="card-metrics">
-        <!-- 主要指標：每月房貸 -->
-        <div class="metric metric--primary">
-          <span class="metric-label">每月還款</span>
-          <span class="metric-value" id="mortgageMonthly">-- </span>
+        <div class="metric">
+          <span class="metric-label">每月還款（試算）</span>
+          <span class="metric-value" id="mortgageMonthly">--</span>
           <span class="metric-unit">元</span>
         </div>
       </div>
-
       <div class="card-divider"></div>
-
-      <!-- 次要指標列 -->
       <div class="card-stats">
         <div class="stat">
-          <span class="stat-label">剩餘本金</span>
+          <span class="stat-label">貸款本金</span>
           <span class="stat-value" id="mortgagePrincipal">--</span>
         </div>
         <div class="stat-separator"></div>
         <div class="stat">
-          <span class="stat-label">目前利率</span>
+          <span class="stat-label">年利率</span>
           <span class="stat-value stat--highlight" id="mortgageRate">--</span>
         </div>
         <div class="stat-separator"></div>
         <div class="stat">
-          <span class="stat-label">剩餘期數</span>
+          <span class="stat-label">貸款期數</span>
           <span class="stat-value" id="mortgagePeriods">--</span>
         </div>
       </div>
     </section>
 
-
-    <!-- ──────────────────────────────────────
+    <!-- ══════════════════════════════════════
          區塊 2：ETF 投資卡
-         未來擴充：0050 定期定額進度、加碼觸發條件
-    ────────────────────────────────────── -->
+    ══════════════════════════════════════ -->
     <section class="card card--etf" aria-label="ETF 投資">
       <div class="card-header">
         <span class="card-icon">📈</span>
         <h2 class="card-title">ETF 投資</h2>
-        <span class="card-badge badge--success" id="etfReturnBadge">+0.00%</span>
+        <span class="card-badge badge--success" id="etfReturnBadge">--</span>
       </div>
-
       <div class="card-metrics">
-        <!-- 主要指標：持有市值 -->
-        <div class="metric metric--primary">
+        <div class="metric">
           <span class="metric-label">持有市值</span>
           <span class="metric-value metric--green" id="etfMarketValue">--</span>
           <span class="metric-unit">元</span>
         </div>
       </div>
-
       <div class="card-divider"></div>
-
       <div class="card-stats">
         <div class="stat">
           <span class="stat-label">投入成本</span>
@@ -111,38 +90,32 @@
         <div class="stat-separator"></div>
         <div class="stat">
           <span class="stat-label">未實現損益</span>
-          <span class="stat-value stat--green" id="etfProfit">--</span>
+          <span class="stat-value" id="etfProfit">--</span>
         </div>
         <div class="stat-separator"></div>
         <div class="stat">
           <span class="stat-label">報酬率</span>
-          <span class="stat-value stat--green" id="etfReturnRate">--</span>
+          <span class="stat-value" id="etfReturnRate">--</span>
         </div>
       </div>
     </section>
 
-
-    <!-- ──────────────────────────────────────
+    <!-- ══════════════════════════════════════
          區塊 3：現金管理卡
-         未來擴充：各銀行帳戶明細、定存到期提醒
-    ────────────────────────────────────── -->
+    ══════════════════════════════════════ -->
     <section class="card card--cash" aria-label="現金管理">
       <div class="card-header">
         <span class="card-icon">💰</span>
         <h2 class="card-title">現金管理</h2>
       </div>
-
       <div class="card-metrics">
-        <!-- 主要指標：緊急預備金 -->
-        <div class="metric metric--primary">
+        <div class="metric">
           <span class="metric-label">緊急預備金</span>
           <span class="metric-value" id="cashReserve">--</span>
           <span class="metric-unit">元</span>
         </div>
       </div>
-
       <div class="card-divider"></div>
-
       <div class="card-stats">
         <div class="stat">
           <span class="stat-label">可加碼資金</span>
@@ -150,31 +123,21 @@
         </div>
         <div class="stat-separator"></div>
         <div class="stat">
-          <span class="stat-label">定存活存</span>
-          <span class="stat-value" id="cashDeposit">--</span>
-        </div>
-        <div class="stat-separator"></div>
-        <div class="stat">
-          <span class="stat-label">活儲利息</span>
-          <span class="stat-value stat--green" id="cashInterest">--</span>
+          <span class="stat-label">預備金覆蓋</span>
+          <span class="stat-value" id="cashCoverage">--</span>
         </div>
       </div>
     </section>
 
-
-    <!-- ──────────────────────────────────────
+    <!-- ══════════════════════════════════════
          區塊 4：本月現金流卡
-         未來擴充：每月自動結算、支出分類圖表
-    ────────────────────────────────────── -->
+    ══════════════════════════════════════ -->
     <section class="card card--cashflow" aria-label="本月現金流">
       <div class="card-header">
         <span class="card-icon">📊</span>
         <h2 class="card-title">本月現金流</h2>
-        <!-- 結餘狀態：由 script.js 依正負值動態切換 class -->
-        <span class="card-badge" id="cashflowStatusBadge">計算中</span>
+        <span class="card-badge" id="cashflowStatusBadge">待輸入</span>
       </div>
-
-      <!-- 現金流長條進度條 -->
       <div class="cashflow-bar-wrap" aria-hidden="true">
         <div class="cashflow-bar">
           <div class="cashflow-bar-fill" id="cashflowBarFill"></div>
@@ -184,51 +147,225 @@
           <span>收入</span>
         </div>
       </div>
-
       <div class="card-divider"></div>
-
       <div class="card-stats">
         <div class="stat">
-          <span class="stat-label">收入</span>
+          <span class="stat-label">月收入</span>
           <span class="stat-value stat--green" id="cfIncome">--</span>
         </div>
         <div class="stat-separator"></div>
         <div class="stat">
-          <span class="stat-label">支出</span>
+          <span class="stat-label">月支出</span>
           <span class="stat-value stat--red" id="cfExpense">--</span>
         </div>
         <div class="stat-separator"></div>
         <div class="stat">
-          <span class="stat-label">結餘</span>
-          <span class="stat-value stat--green" id="cfBalance">--</span>
+          <span class="stat-label">月結餘</span>
+          <span class="stat-value" id="cfBalance">--</span>
         </div>
       </div>
     </section>
 
-
-    <!-- ──────────────────────────────────────
-         底部大型 CTA 按鈕
-         之後每個功能模組都會有各自的按鈕或頁面
-    ────────────────────────────────────── -->
+    <!-- ══════════════════════════════════════
+         CTA 按鈕區
+    ══════════════════════════════════════ -->
     <div class="cta-wrap">
-      <button class="btn-cta" id="btnStart" onclick="handleStartButton()">
-        <span class="btn-icon">⚡</span>
-        開始試算
+      <button class="btn-cta" id="btnStart" onclick="toggleForm()">
+        <span class="btn-icon" id="btnIcon">⚡</span>
+        <span id="btnLabel">開始試算</span>
       </button>
-      <p class="cta-hint">房貸 · 定期定額 · 加碼策略</p>
+      <p class="cta-hint">輸入你的實際數據，即時試算</p>
     </div>
+
+    <!-- ══════════════════════════════════════
+         輸入表單區（預設收合，按下開始試算展開）
+         資料只存在記憶體（JS 變數），不送出伺服器
+    ══════════════════════════════════════ -->
+    <div class="form-panel" id="formPanel" aria-hidden="true">
+      <div class="form-panel-inner">
+
+        <!-- ── 房貸輸入 ── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="form-section-icon">🏠</span>
+            <h3 class="form-section-title">房貸資料</h3>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputPrincipal">貸款本金（元）</label>
+            <input class="form-input" id="inputPrincipal" type="number"
+              placeholder="例：6300000" min="0" inputmode="numeric" />
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputRate">年利率（%）</label>
+            <input class="form-input" id="inputRate" type="number"
+              placeholder="例：2.16" min="0" step="0.01" inputmode="decimal" />
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputPeriods">貸款期數（月）</label>
+            <input class="form-input" id="inputPeriods" type="number"
+              placeholder="例：300（25年）" min="1" inputmode="numeric" />
+          </div>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- ── ETF 輸入 ── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="form-section-icon">📈</span>
+            <h3 class="form-section-title">ETF 投資</h3>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputEtfCost">投入成本（元）</label>
+            <input class="form-input" id="inputEtfCost" type="number"
+              placeholder="例：1100000" min="0" inputmode="numeric" />
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputEtfValue">目前市值（元）</label>
+            <input class="form-input" id="inputEtfValue" type="number"
+              placeholder="例：1248000" min="0" inputmode="numeric" />
+          </div>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- ── 現金輸入 ── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="form-section-icon">💰</span>
+            <h3 class="form-section-title">現金管理</h3>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputReserve">緊急預備金（元）</label>
+            <input class="form-input" id="inputReserve" type="number"
+              placeholder="例：450000" min="0" inputmode="numeric" />
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputAvailable">可加碼資金（元）</label>
+            <input class="form-input" id="inputAvailable" type="number"
+              placeholder="例：65000" min="0" inputmode="numeric" />
+          </div>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- ── 現金流輸入 ── -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="form-section-icon">📊</span>
+            <h3 class="form-section-title">本月現金流</h3>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputIncome">月收入（元）</label>
+            <input class="form-input" id="inputIncome" type="number"
+              placeholder="例：95000" min="0" inputmode="numeric" />
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inputExpense">月支出（元）</label>
+            <input class="form-input" id="inputExpense" type="number"
+              placeholder="例：68500" min="0" inputmode="numeric" />
+          </div>
+        </div>
+
+        <!-- ── 表單操作按鈕 ── -->
+        <div class="form-actions">
+          <button class="btn-calc" onclick="calculate()">
+            <span>🧮</span> 確認試算
+          </button>
+          <button class="btn-reset" onclick="resetAll()">
+            <span>↺</span> 清除重填
+          </button>
+        </div>
+
+        <!-- 錯誤提示區 -->
+        <div class="form-error" id="formError" aria-live="polite"></div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         試算結果卡片（試算後顯示）
+    ══════════════════════════════════════ -->
+    <section class="card card--result" id="resultCard" aria-label="試算結果" style="display:none;">
+      <div class="card-header">
+        <span class="card-icon">✅</span>
+        <h2 class="card-title">試算結果</h2>
+        <span class="card-badge badge--success" id="resultTimeBadge"></span>
+      </div>
+
+      <!-- 結果：房貸 -->
+      <div class="result-group">
+        <div class="result-group-label">🏠 房貸試算</div>
+        <div class="result-rows">
+          <div class="result-row">
+            <span class="result-key">每月還款金額</span>
+            <span class="result-val result-val--primary" id="r_monthly">--</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">貸款總利息</span>
+            <span class="result-val result-val--orange" id="r_totalInterest">--</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">還款總金額</span>
+            <span class="result-val" id="r_totalPay">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <!-- 結果：ETF -->
+      <div class="result-group">
+        <div class="result-group-label">📈 ETF 投資</div>
+        <div class="result-rows">
+          <div class="result-row">
+            <span class="result-key">未實現損益</span>
+            <span class="result-val" id="r_profit">--</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">報酬率</span>
+            <span class="result-val" id="r_returnRate">--</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">損益 vs 月房貸</span>
+            <span class="result-val" id="r_profitVsMortgage">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <!-- 結果：現金流 -->
+      <div class="result-group">
+        <div class="result-group-label">📊 現金流分析</div>
+        <div class="result-rows">
+          <div class="result-row">
+            <span class="result-key">月結餘</span>
+            <span class="result-val" id="r_balance">--</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">扣除房貸後結餘</span>
+            <span class="result-val" id="r_balanceAfterMortgage">--</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">預備金可撐月數</span>
+            <span class="result-val" id="r_coverage">--</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">儲蓄率</span>
+            <span class="result-val" id="r_savingsRate">--</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
 
   </main>
 
-
-  <!-- ==========================================
-       底部版權列
-  ========================================== -->
   <footer class="app-footer">
-    <p>資料僅供參考 · 非投資建議</p>
+    <p>資料僅存於瀏覽器記憶體 · 關閉頁面即清除 · 非投資建議</p>
     <p id="footerYear"></p>
   </footer>
-
 
   <script src="script.js"></script>
 </body>
