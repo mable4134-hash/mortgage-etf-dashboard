@@ -162,6 +162,19 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .btn-cancel{flex:1;padding:14px;background:var(--stat);color:var(--t2);font-size:14px;font-weight:600;border-radius:var(--r12);border:1px solid var(--border);touch-action:manipulation}
 .btn-cancel:active{opacity:.8}
 
+/* ══ 首頁概況卡片 ══ */
+.overview-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden}
+.overview-row{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border2)}
+.overview-row:last-child{border-bottom:none}
+.overview-row-left{display:flex;align-items:center;gap:10px}
+.overview-row-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.overview-row-name{font-size:13px;font-weight:600;color:var(--t1)}
+.overview-row-count{font-size:10px;color:var(--tm);margin-top:1px}
+.overview-row-right{text-align:right}
+.overview-row-amount{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.overview-row-pct{font-size:10px;color:var(--tm);margin-top:1px;font-variant-numeric:tabular-nums}
+.overview-empty{font-size:12px;color:var(--tm);text-align:center;padding:20px}
+
 /* ══ 動畫 ══ */
 .fade-in{animation:fadeIn .25s ease forwards}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -212,26 +225,30 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
       </div>
     </div>
 
-    <!-- 資產快速列表 -->
+    <!-- 資產概況 -->
     <div class="home-section">
       <div class="section-header">
-        <div class="section-title"><span class="section-dot dot--green"></span>資產</div>
+        <div class="section-title"><span class="section-dot dot--green"></span>資產概況</div>
         <div class="section-total val--green" id="homeassetTotal"></div>
       </div>
-      <div id="homeAssetList"></div>
+      <div class="overview-card" id="homeAssetOverview">
+        <div class="overview-empty">尚未新增任何資產</div>
+      </div>
     </div>
 
-    <!-- 負債快速列表 -->
+    <!-- 負債概況 -->
     <div class="home-section">
       <div class="section-header">
-        <div class="section-title"><span class="section-dot dot--red"></span>負債</div>
+        <div class="section-title"><span class="section-dot dot--red"></span>負債概況</div>
         <div class="section-total val--red" id="homeDebtTotal"></div>
       </div>
-      <div id="homeDebtList"></div>
+      <div class="overview-card" id="homeDebtOverview">
+        <div class="overview-empty">尚未新增任何負債</div>
+      </div>
     </div>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.3 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v1.4 · 個人資產負債儀表板</div>
 
   </div>
 </div>
@@ -259,7 +276,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.3 · 資產管理</div>
+    <div class="ver-badge">v1.4 · 資產管理</div>
 
   </div>
 </div>
@@ -287,7 +304,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.3 · 負債管理</div>
+    <div class="ver-badge">v1.4 · 負債管理</div>
 
   </div>
 </div>
@@ -473,17 +490,74 @@ function itemHTML(item,mode,index){
   </div>`;
 }
 
-/* ══ 渲染首頁列表 ══ */
-function renderHomeLists(){
-  const assets=LS.get(KEY_A), debts=LS.get(KEY_D);
-  const ha=el('homeAssetList');
-  if(ha)ha.innerHTML=assets.length
-    ?assets.map((a,i)=>itemHTML(a,'asset',i)).join('')
-    :'<div class="empty-hint">尚未新增任何資產</div>';
-  const hd=el('homeDebtList');
-  if(hd)hd.innerHTML=debts.length
-    ?debts.map((d,i)=>itemHTML(d,'debt',i)).join('')
-    :'<div class="empty-hint">尚未新增任何負債</div>';
+/* ══ 渲染首頁概況（v1.4） ══ */
+function renderHomeOverview(){
+  const assets=LS.get(KEY_A);
+  const debts=LS.get(KEY_D);
+  const totalA=assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  const totalD=debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  setText('homeassetTotal',assets.length?fmt(totalA)+' 元':'');
+  setText('homeDebtTotal',debts.length?fmt(totalD)+' 元':'');
+
+  // 資產概況：依類型加總
+  const aContainer=el('homeAssetOverview');
+  if(aContainer){
+    if(!assets.length){
+      aContainer.innerHTML='<div class="overview-empty">尚未新增任何資產</div>';
+    } else {
+      const A_ORDER=['cash','etf','house','deposit','other'];
+      const aGroup={};
+      assets.forEach(a=>{const k=a.type||'other';if(!aGroup[k])aGroup[k]={total:0,count:0};aGroup[k].total+=parseFloat(a.amount)||0;aGroup[k].count++});
+      aContainer.innerHTML=A_ORDER.filter(k=>aGroup[k]).map(k=>{
+        const t=getType('asset',k);
+        const g=aGroup[k];
+        const pct=totalA>0?((g.total/totalA)*100).toFixed(1):'0';
+        return`<div class="overview-row">
+          <div class="overview-row-left">
+            <div class="overview-row-icon ${t.cls}">${t.icon}</div>
+            <div>
+              <div class="overview-row-name">${t.label}</div>
+              <div class="overview-row-count">${g.count} 筆</div>
+            </div>
+          </div>
+          <div class="overview-row-right">
+            <div class="overview-row-amount val--green">${fmt(g.total)} 元</div>
+            <div class="overview-row-pct">${pct}%</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // 負債概況：依類型加總
+  const dContainer=el('homeDebtOverview');
+  if(dContainer){
+    if(!debts.length){
+      dContainer.innerHTML='<div class="overview-empty">尚未新增任何負債</div>';
+    } else {
+      const D_ORDER=['mortgage','carloan','personal','credit','other'];
+      const dGroup={};
+      debts.forEach(d=>{const k=d.type||'other';if(!dGroup[k])dGroup[k]={total:0,count:0};dGroup[k].total+=parseFloat(d.amount)||0;dGroup[k].count++});
+      dContainer.innerHTML=D_ORDER.filter(k=>dGroup[k]).map(k=>{
+        const t=getType('debt',k);
+        const g=dGroup[k];
+        const pct=totalD>0?((g.total/totalD)*100).toFixed(1):'0';
+        return`<div class="overview-row">
+          <div class="overview-row-left">
+            <div class="overview-row-icon ${t.cls}">${t.icon}</div>
+            <div>
+              <div class="overview-row-name">${t.label}</div>
+              <div class="overview-row-count">${g.count} 筆</div>
+            </div>
+          </div>
+          <div class="overview-row-right">
+            <div class="overview-row-amount val--red">-${fmt(g.total)} 元</div>
+            <div class="overview-row-pct">${pct}%</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
 }
 
 /* ══ 渲染資產頁 ══ */
@@ -560,7 +634,7 @@ function renderDebtPage(){
   }).join('');
 }
 
-function renderAll(){renderSummary();renderHomeLists();renderAssetPage();renderDebtPage()}
+function renderAll(){renderSummary();renderHomeOverview();renderAssetPage();renderDebtPage()}
 
 /* ══ Modal ══ */
 let _mode='asset', _editIdx=-1;
