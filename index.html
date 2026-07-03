@@ -17,6 +17,7 @@
   --red:#EF4444;--rbg:#2D1010;
   --blue:#38BDF8;--bbg:#0C1E30;
   --purple:#A78BFA;--pbg:#1C1535;
+  --nav-h:64px;
   --r8:8px;--r12:12px;--r16:16px;--r20:20px;
   --font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
 }
@@ -29,8 +30,8 @@ h1,h2,h3{font-weight:700;line-height:1.2}
 button{font-family:var(--font);cursor:pointer;border:none;background:none;-webkit-tap-highlight-color:transparent}
 :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:var(--r8)}
 
-/* ── Header ── */
-.header{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:14px 16px}
+/* ══ Header ══ */
+.header{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 16px}
 .header-inner{display:flex;align-items:center;justify-content:space-between;max-width:680px;margin:0 auto}
 .header-brand{display:flex;align-items:center;gap:10px}
 .header-logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#064E3B,#047857);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 12px rgba(34,211,168,.2)}
@@ -38,51 +39,80 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .header-sub{font-size:11px;color:var(--t2)}
 .header-date{font-size:11px;color:var(--t2);text-align:right;line-height:1.5}
 
-/* ── Layout ── */
-.main{max-width:680px;margin:0 auto;padding:16px 16px 48px}
-.footer{text-align:center;padding:20px 16px 32px;color:var(--tm);font-size:11px;line-height:2;max-width:680px;margin:0 auto;border-top:1px solid var(--border)}
+/* ══ Bottom Nav ══ */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(13,17,23,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);height:var(--nav-h);display:flex;align-items:stretch;padding-bottom:env(safe-area-inset-bottom)}
+.nav-inner{display:flex;width:100%;max-width:680px;margin:0 auto}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--tm);font-size:10px;font-weight:600;letter-spacing:.3px;transition:color .15s;touch-action:manipulation;position:relative}
+.nav-btn.active{color:var(--green)}
+.nav-btn.active .nav-icon{filter:drop-shadow(0 0 6px var(--green))}
+.nav-icon{font-size:22px;line-height:1;transition:transform .15s}
+.nav-btn.active .nav-icon{transform:scale(1.1)}
+/* 紅點徽章 */
+.nav-badge{position:absolute;top:6px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--red);display:none}
+.nav-badge.show{display:block}
 
-/* ── 總覽橫幅 ── */
+/* ══ Pages ══ */
+.page{display:none;min-height:calc(100dvh - var(--nav-h) - 57px);padding:16px 16px calc(var(--nav-h) + 16px)}
+.page.active{display:block}
+.page-inner{max-width:680px;margin:0 auto}
+
+/* ══ 首頁：總覽橫幅 ══ */
 .summary-banner{background:linear-gradient(135deg,#0D1F1A 0%,#111827 50%,#13111F 100%);border:1px solid rgba(34,211,168,.15);border-radius:var(--r20);padding:24px;margin-bottom:16px;position:relative;overflow:hidden}
-.summary-banner::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(34,211,168,.06) 0%,transparent 70%);pointer-events:none}
+.summary-banner::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(34,211,168,.06),transparent 70%);pointer-events:none}
 .summary-label{font-size:11px;color:var(--t2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
 .summary-net{display:flex;align-items:baseline;gap:8px;margin-bottom:20px}
 .summary-net-value{font-size:48px;font-weight:800;letter-spacing:-2px;font-variant-numeric:tabular-nums;line-height:1;color:var(--green);text-shadow:0 0 32px rgba(34,211,168,.25)}
 .summary-net-unit{font-size:16px;color:var(--t2);font-weight:500}
 .summary-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.summary-block{background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:var(--r12);padding:12px 14px}
+.summary-block{background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:var(--r12);padding:12px 14px;cursor:pointer;transition:border-color .15s}
+.summary-block:hover{border-color:var(--border)}
 .summary-block-label{font-size:10px;color:var(--tm);letter-spacing:.5px;margin-bottom:4px}
 .summary-block-value{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
 .summary-block-sub{font-size:10px;color:var(--t2);margin-top:2px}
-.val--green{color:var(--green)}
-.val--red{color:var(--red)}
-.val--orange{color:var(--orange)}
 
-/* ── Section ── */
-.section{margin-bottom:12px}
+/* ══ 首頁：快速概覽列表 ══ */
+.home-section{margin-bottom:16px}
+.home-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.home-section-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--t2);letter-spacing:.4px;text-transform:uppercase}
+.section-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot--green{background:var(--green);box-shadow:0 0 5px var(--green)}
+.dot--red{background:var(--red);box-shadow:0 0 5px var(--red)}
+.home-section-link{font-size:12px;color:var(--green);font-weight:600;touch-action:manipulation}
+.home-section-total{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ══ 首頁：工具捷徑 ══ */
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tool-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:border-color .15s;touch-action:manipulation}
+.tool-card:hover{border-color:var(--green)}
+.tool-card-icon{font-size:26px;line-height:1}
+.tool-card-title{font-size:14px;font-weight:700}
+.tool-card-sub{font-size:11px;color:var(--t2);line-height:1.4}
+
+/* ══ 頁面標題列 ══ */
+.page-header{margin-bottom:16px}
+.page-title{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.page-subtitle{font-size:12px;color:var(--t2);margin-top:2px}
+
+/* ══ Section ══ */
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px}
-.section-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--t2);letter-spacing:.5px;text-transform:uppercase}
-.section-dot{width:8px;height:8px;border-radius:50%}
-.dot--green{background:var(--green);box-shadow:0 0 6px var(--green)}
-.dot--red{background:var(--red);box-shadow:0 0 6px var(--red)}
+.section-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--t2);letter-spacing:.4px;text-transform:uppercase}
 .section-total{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
 
-/* ── Item Card ── */
+/* ══ Item Card ══ */
 .item-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:border-color .15s}
-.item-card:active{border-color:var(--border2)}
 .item-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .item-body{flex:1;min-width:0}
-.item-name{font-size:14px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item-meta{font-size:11px;color:var(--t2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item-right{text-align:right;flex-shrink:0}
 .item-value{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
 .item-sub{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:1px}
 .item-actions{display:flex;gap:4px;flex-shrink:0}
-.btn-sm{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r8);font-size:15px;background:var(--stat);border:1px solid var(--border);color:var(--t2);transition:all .15s;touch-action:manipulation;flex-shrink:0}
+.btn-sm{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r8);font-size:15px;background:var(--stat);border:1px solid var(--border);color:var(--t2);transition:all .15s;touch-action:manipulation}
 .btn-sm:hover{border-color:var(--green);color:var(--t1)}
 .btn-sm.del:hover{border-color:var(--red);color:var(--red)}
 
-/* icon bg colors */
+/* icon bg */
 .icon--cash{background:rgba(34,211,168,.12)}
 .icon--etf{background:rgba(56,189,248,.12)}
 .icon--house{background:rgba(167,139,250,.12)}
@@ -94,22 +124,39 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .icon--credit{background:rgba(249,115,22,.12)}
 .icon--debt-other{background:rgba(139,148,158,.12)}
 
-/* ── 新增按鈕 ── */
-.btn-add{width:100%;padding:12px;background:transparent;border:1px dashed var(--border);border-radius:var(--r12);color:var(--t2);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;touch-action:manipulation;margin-top:4px}
+/* ══ 新增按鈕 ══ */
+.btn-add{width:100%;padding:13px;background:transparent;border:1px dashed var(--border);border-radius:var(--r12);color:var(--t2);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;touch-action:manipulation;margin-top:4px}
 .btn-add:hover,.btn-add:active{border-color:var(--green);color:var(--green)}
 
-/* ── Modal 遮罩 ── */
+/* ══ 工具頁 ══ */
+.tool-page-grid{display:flex;flex-direction:column;gap:10px}
+.tool-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:18px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:border-color .15s;touch-action:manipulation}
+.tool-item:hover{border-color:var(--green)}
+.tool-item-icon{font-size:28px;width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tool-item-body{flex:1}
+.tool-item-title{font-size:15px;font-weight:700}
+.tool-item-sub{font-size:12px;color:var(--t2);margin-top:2px;line-height:1.4}
+.tool-item-arrow{color:var(--tm);font-size:18px;flex-shrink:0}
+.tool-coming{font-size:10px;color:var(--orange);font-weight:600;background:var(--obg);padding:2px 7px;border-radius:20px;margin-top:4px;display:inline-block}
+
+/* ══ 值顏色 ══ */
+.val--green{color:var(--green)}
+.val--red{color:var(--red)}
+.val--orange{color:var(--orange)}
+
+/* ══ Modal ══ */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
 .modal-overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:680px;padding:0 0 32px;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:680px;padding-bottom:max(env(safe-area-inset-bottom),16px);transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
 .modal-overlay.open .modal{transform:translateY(0);transition:transform .3s cubic-bezier(.33,1,.68,1)}
 .modal-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:12px auto 0}
-.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px}
 .modal-title{font-size:16px;font-weight:800}
 .modal-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r8);background:var(--stat);color:var(--t2);font-size:18px;touch-action:manipulation}
-.modal-body{padding:0 20px;display:flex;flex-direction:column;gap:14px;max-height:60vh;overflow-y:auto}
+.modal-body{padding:0 20px;display:flex;flex-direction:column;gap:14px;max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-actions{display:flex;gap:10px;padding:16px 20px 0}
 
-/* ── 表單元件 ── */
+/* ══ 表單 ══ */
 .form-group{display:flex;flex-direction:column;gap:6px}
 .form-label{font-size:12px;color:var(--t2);font-weight:500;letter-spacing:.3px}
 .form-input{background:var(--input);border:1px solid var(--border);border-radius:var(--r8);color:var(--t1);font-family:var(--font);font-size:16px;font-variant-numeric:tabular-nums;padding:12px 14px;width:100%;transition:border-color .15s,box-shadow .15s;-moz-appearance:textfield}
@@ -118,96 +165,292 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .form-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,211,168,.1)}
 .form-select{background:var(--input);border:1px solid var(--border);border-radius:var(--r8);color:var(--t1);font-family:var(--font);font-size:15px;padding:12px 14px;width:100%;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B949E' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 .form-select:focus{outline:none;border-color:var(--green)}
+.form-note{font-size:11px;color:var(--tm)}
 .form-error{font-size:12px;color:var(--red);background:var(--rbg);border-radius:var(--r8);padding:0;max-height:0;overflow:hidden;transition:all .2s}
 .form-error.show{padding:8px 12px;max-height:60px}
-.form-note{font-size:11px;color:var(--tm);margin-top:-8px}
-.modal-actions{display:flex;gap:10px;padding:16px 20px 0}
 .btn-save{flex:2;padding:14px;background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);font-size:15px;font-weight:700;border-radius:var(--r12);border:1px solid rgba(34,211,168,.2);touch-action:manipulation}
 .btn-save:active{opacity:.85}
 .btn-cancel{flex:1;padding:14px;background:var(--stat);color:var(--t2);font-size:14px;font-weight:600;border-radius:var(--r12);border:1px solid var(--border);touch-action:manipulation}
 .btn-cancel:active{opacity:.8}
 
-/* ── 空白提示 ── */
-.empty-hint{font-size:12px;color:var(--tm);text-align:center;padding:12px 0 4px}
+/* ══ 空白提示 ══ */
+.empty-hint{font-size:12px;color:var(--tm);text-align:center;padding:16px 0 8px}
 
-/* ── 動畫 ── */
-.fade-in{animation:fadeIn .3s ease forwards}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.modal,.modal-overlay,.item-card{transition:none}.fade-in{animation:none}}
-@media(min-width:600px){.main{padding:24px 24px 48px}.summary-net-value{font-size:56px}}
+/* ══ 動畫 ══ */
+.fade-in{animation:fadeIn .25s ease forwards}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(min-width:600px){.page{padding:24px 24px calc(var(--nav-h)+24px)}.summary-net-value{font-size:56px}.tool-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 
-<!-- Header -->
+<!-- ══════════════════════════════════════
+     Header
+══════════════════════════════════════ -->
 <header class="header">
   <div class="header-inner">
     <div class="header-brand">
       <div class="header-logo">⬡</div>
       <div>
-        <div class="header-title">資產負債儀表板</div>
-        <div class="header-sub">Net Worth Tracker</div>
+        <div class="header-title" id="headerTitle">資產負債儀表板</div>
+        <div class="header-sub" id="headerSub">Net Worth Tracker</div>
       </div>
     </div>
     <div class="header-date" id="hDate"></div>
   </div>
 </header>
 
-<main class="main">
+<!-- ══════════════════════════════════════
+     頁面：首頁
+══════════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <div class="page-inner">
 
-  <!-- 總覽橫幅 -->
-  <div class="summary-banner fade-in">
-    <div class="summary-label">淨資產 Net Worth</div>
-    <div class="summary-net">
-      <span class="summary-net-value" id="sNet">--</span>
-      <span class="summary-net-unit">元</span>
-    </div>
-    <div class="summary-row">
-      <div class="summary-block">
-        <div class="summary-block-label">總資產</div>
-        <div class="summary-block-value val--green" id="sAsset">--</div>
-        <div class="summary-block-sub" id="sAssetCount">-- 筆資產</div>
+    <!-- 淨資產橫幅 -->
+    <div class="summary-banner">
+      <div class="summary-label">淨資產 Net Worth</div>
+      <div class="summary-net">
+        <span class="summary-net-value" id="sNet">--</span>
+        <span class="summary-net-unit">元</span>
       </div>
-      <div class="summary-block">
-        <div class="summary-block-label">總負債</div>
-        <div class="summary-block-value val--red" id="sDebt">--</div>
-        <div class="summary-block-sub" id="sDebtCount">-- 筆負債</div>
+      <div class="summary-row">
+        <div class="summary-block" onclick="goTo('asset')">
+          <div class="summary-block-label">總資產 ›</div>
+          <div class="summary-block-value val--green" id="sAsset">--</div>
+          <div class="summary-block-sub" id="sAssetCount">-- 筆</div>
+        </div>
+        <div class="summary-block" onclick="goTo('debt')">
+          <div class="summary-block-label">總負債 ›</div>
+          <div class="summary-block-value val--red" id="sDebt">--</div>
+          <div class="summary-block-sub" id="sDebtCount">-- 筆</div>
+        </div>
       </div>
     </div>
+
+    <!-- 資產快速列表 -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <div class="home-section-title"><span class="section-dot dot--green"></span>資產</div>
+        <span class="home-section-link" onclick="goTo('asset')">查看全部 ›</span>
+      </div>
+      <div id="homeAssetList"></div>
+    </div>
+
+    <!-- 負債快速列表 -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <div class="home-section-title"><span class="section-dot dot--red"></span>負債</div>
+        <span class="home-section-link" onclick="goTo('debt')">查看全部 ›</span>
+      </div>
+      <div id="homeDebtList"></div>
+    </div>
+
+    <!-- 工具捷徑 -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <div class="home-section-title"><span class="section-dot" style="background:var(--purple);box-shadow:0 0 5px var(--purple)"></span>工具</div>
+      </div>
+      <div class="tool-grid">
+        <div class="tool-card" onclick="goTo('tools')">
+          <div class="tool-card-icon">🧮</div>
+          <div class="tool-card-title">房貸試算</div>
+          <div class="tool-card-sub">每月還款、總利息</div>
+        </div>
+        <div class="tool-card" onclick="goTo('tools')">
+          <div class="tool-card-icon">📊</div>
+          <div class="tool-card-title">現金流分析</div>
+          <div class="tool-card-sub">收入、支出、結餘</div>
+        </div>
+      </div>
+    </div>
+
   </div>
+</div>
 
-  <!-- 資產區 -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-title">
-        <span class="section-dot dot--green"></span>資產
-      </div>
-      <div class="section-total val--green" id="assetTotal">--</div>
+<!-- ══════════════════════════════════════
+     頁面：資產
+══════════════════════════════════════ -->
+<div class="page" id="page-asset">
+  <div class="page-inner">
+    <div class="page-header">
+      <div class="page-title">資產</div>
+      <div class="page-subtitle" id="assetSubtitle">總計 -- 元</div>
     </div>
     <div id="assetList"></div>
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
   </div>
+</div>
 
-  <!-- 負債區 -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-title">
-        <span class="section-dot dot--red"></span>負債
-      </div>
-      <div class="section-total val--red" id="debtTotal">--</div>
+<!-- ══════════════════════════════════════
+     頁面：負債
+══════════════════════════════════════ -->
+<div class="page" id="page-debt">
+  <div class="page-inner">
+    <div class="page-header">
+      <div class="page-title">負債</div>
+      <div class="page-subtitle" id="debtSubtitle">總計 -- 元</div>
     </div>
     <div id="debtList"></div>
     <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
   </div>
+</div>
 
-</main>
+<!-- ══════════════════════════════════════
+     頁面：工具
+══════════════════════════════════════ -->
+<div class="page" id="page-tools">
+  <div class="page-inner">
+    <div class="page-header">
+      <div class="page-title">工具</div>
+      <div class="page-subtitle">財務計算與分析</div>
+    </div>
+    <div class="tool-page-grid">
 
-<footer class="footer">
-  <div>資料存於瀏覽器 localStorage · 關閉頁面後仍保留</div>
-  <div>非投資建議 · <span id="fyear"></span></div>
-</footer>
+      <!-- 房貸試算 -->
+      <div class="tool-item" onclick="openTool('mortgage')">
+        <div class="tool-item-icon icon--mortgage">🏠</div>
+        <div class="tool-item-body">
+          <div class="tool-item-title">房貸試算</div>
+          <div class="tool-item-sub">輸入本金、利率、期數，計算每月還款與總利息</div>
+        </div>
+        <div class="tool-item-arrow">›</div>
+      </div>
 
-<!-- Modal：新增 / 編輯 -->
+      <!-- 現金流 -->
+      <div class="tool-item" onclick="openTool('cashflow')">
+        <div class="tool-item-icon icon--cash">📊</div>
+        <div class="tool-item-body">
+          <div class="tool-item-title">現金流分析</div>
+          <div class="tool-item-sub">月收入與月支出，計算結餘與儲蓄率</div>
+        </div>
+        <div class="tool-item-arrow">›</div>
+      </div>
+
+      <!-- ETF 報酬試算（開發中） -->
+      <div class="tool-item" style="opacity:.5;cursor:default">
+        <div class="tool-item-icon icon--etf">📈</div>
+        <div class="tool-item-body">
+          <div class="tool-item-title">ETF 定期定額試算</div>
+          <div class="tool-item-sub">模擬長期投資報酬</div>
+          <div class="tool-coming">開發中</div>
+        </div>
+        <div class="tool-item-arrow">›</div>
+      </div>
+
+      <!-- 加碼策略（開發中） -->
+      <div class="tool-item" style="opacity:.5;cursor:default">
+        <div class="tool-item-icon icon--deposit">⚡</div>
+        <div class="tool-item-body">
+          <div class="tool-item-title">加碼策略試算</div>
+          <div class="tool-item-sub">跌幅觸發、分批佈局</div>
+          <div class="tool-coming">開發中</div>
+        </div>
+        <div class="tool-item-arrow">›</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     工具子頁：房貸試算
+══════════════════════════════════════ -->
+<div class="page" id="page-mortgage">
+  <div class="page-inner">
+    <div class="page-header">
+      <div class="page-title">🏠 房貸試算</div>
+      <div class="page-subtitle">等額本息計算</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px">
+      <div class="form-group">
+        <label class="form-label" for="mPrincipal">貸款本金（元）</label>
+        <input class="form-input" id="mPrincipal" type="number" placeholder="例：6300000" inputmode="numeric"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="mRate">年利率（%）</label>
+        <input class="form-input" id="mRate" type="number" placeholder="例：2.16" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="mPeriods">貸款期數（月）</label>
+        <input class="form-input" id="mPeriods" type="number" placeholder="例：300（25年）" inputmode="numeric"/>
+      </div>
+      <div class="form-error" id="mError"></div>
+      <button class="btn-save" style="flex:none;width:100%" onclick="calcMortgage()">🧮 開始試算</button>
+    </div>
+    <!-- 結果 -->
+    <div id="mortgageResult" style="display:none">
+      <div style="background:var(--card);border:1px solid rgba(34,211,168,.2);border-radius:var(--r16);overflow:hidden">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--t2)">試算結果</div>
+        <div id="mortgageResultRows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     工具子頁：現金流
+══════════════════════════════════════ -->
+<div class="page" id="page-cashflow">
+  <div class="page-inner">
+    <div class="page-header">
+      <div class="page-title">📊 現金流分析</div>
+      <div class="page-subtitle">月收支計算</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px">
+      <div class="form-group">
+        <label class="form-label" for="cfIncome">月收入（元）</label>
+        <input class="form-input" id="cfIncome" type="number" placeholder="例：95000" inputmode="numeric"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="cfExpense">月支出（元）</label>
+        <input class="form-input" id="cfExpense" type="number" placeholder="例：68500" inputmode="numeric"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="cfReserve">緊急預備金（元，選填）</label>
+        <input class="form-input" id="cfReserve" type="number" placeholder="例：450000" inputmode="numeric"/>
+      </div>
+      <div class="form-error" id="cfError"></div>
+      <button class="btn-save" style="flex:none;width:100%" onclick="calcCashflow()">🧮 開始分析</button>
+    </div>
+    <div id="cashflowResult" style="display:none">
+      <div style="background:var(--card);border:1px solid rgba(34,211,168,.2);border-radius:var(--r16);overflow:hidden">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--t2)">分析結果</div>
+        <div id="cashflowResultRows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     Bottom Navigation
+══════════════════════════════════════ -->
+<nav class="bottom-nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" id="nav-home" onclick="goTo('home')">
+      <span class="nav-icon">🏠</span>
+      <span>首頁</span>
+    </button>
+    <button class="nav-btn" id="nav-asset" onclick="goTo('asset')">
+      <span class="nav-icon">📈</span>
+      <span>資產</span>
+      <span class="nav-badge" id="badge-asset"></span>
+    </button>
+    <button class="nav-btn" id="nav-debt" onclick="goTo('debt')">
+      <span class="nav-icon">💳</span>
+      <span>負債</span>
+      <span class="nav-badge" id="badge-debt"></span>
+    </button>
+    <button class="nav-btn" id="nav-tools" onclick="goTo('tools')">
+      <span class="nav-icon">🧮</span>
+      <span>工具</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     Modal：新增 / 編輯
+══════════════════════════════════════ -->
 <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
   <div class="modal" id="modal">
     <div class="modal-handle"></div>
@@ -216,47 +459,32 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-
-      <!-- 類型選單 -->
       <div class="form-group">
-        <label class="form-label" for="fType">類型</label>
+        <label class="form-label">類型</label>
         <select class="form-select" id="fType" onchange="onTypeChange()"></select>
       </div>
-
-      <!-- 名稱 -->
       <div class="form-group">
         <label class="form-label" for="fName">名稱</label>
-        <input class="form-input" id="fName" type="text" placeholder="例：0050、第一銀行定存" maxlength="30"/>
+        <input class="form-input" id="fName" type="text" placeholder="" maxlength="30"/>
       </div>
-
-      <!-- 金額 -->
       <div class="form-group">
-        <label class="form-label" for="fAmount" id="fAmountLabel">金額（元）</label>
+        <label class="form-label" for="fAmount">金額（元）</label>
         <input class="form-input" id="fAmount" type="number" placeholder="例：500000" min="0" inputmode="numeric"/>
       </div>
-
-      <!-- 成本（ETF 專用） -->
       <div class="form-group" id="fCostGroup" style="display:none">
-        <label class="form-label" for="fCost">投入成本（元）</label>
+        <label class="form-label" for="fCost">投入成本（元，選填）</label>
         <input class="form-input" id="fCost" type="number" placeholder="例：420000" min="0" inputmode="numeric"/>
-        <div class="form-note">選填：填入成本後會顯示損益與報酬率</div>
+        <div class="form-note">填入後自動計算損益與報酬率</div>
       </div>
-
-      <!-- 利率（貸款專用） -->
       <div class="form-group" id="fRateGroup" style="display:none">
-        <label class="form-label" for="fRate">年利率（%）</label>
+        <label class="form-label" for="fRate">年利率（%，選填）</label>
         <input class="form-input" id="fRate" type="number" placeholder="例：2.16" min="0" step="0.01" inputmode="decimal"/>
-        <div class="form-note">選填：顯示於明細</div>
       </div>
-
-      <!-- 備註 -->
       <div class="form-group">
         <label class="form-label" for="fNote">備註（選填）</label>
-        <input class="form-input" id="fNote" type="text" placeholder="例：iLEO 高利活存" maxlength="40"/>
+        <input class="form-input" id="fNote" type="text" placeholder="例：第一銀行 iLEO" maxlength="40"/>
       </div>
-
       <div class="form-error" id="fError"></div>
-
     </div>
     <div class="modal-actions">
       <button class="btn-save" onclick="saveItem()">💾 儲存</button>
@@ -266,274 +494,337 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 </div>
 
 <script>
-/* ══════════════════════════════════════════════
+/* ══════════════════════════════════════════
    設定
-══════════════════════════════════════════════ */
-const ASSET_TYPES = [
-  {value:'cash',    label:'現金 / 活存',  icon:'💵', cls:'icon--cash'},
-  {value:'etf',     label:'股票 / ETF',   icon:'📈', cls:'icon--etf'},
-  {value:'house',   label:'不動產',        icon:'🏠', cls:'icon--house'},
-  {value:'deposit', label:'定期存款',      icon:'🏦', cls:'icon--deposit'},
-  {value:'other',   label:'其他資產',      icon:'📦', cls:'icon--other'},
+══════════════════════════════════════════ */
+const ASSET_TYPES=[
+  {value:'cash',    label:'現金 / 活存', icon:'💵',cls:'icon--cash'},
+  {value:'etf',     label:'股票 / ETF',  icon:'📈',cls:'icon--etf'},
+  {value:'house',   label:'不動產',       icon:'🏠',cls:'icon--house'},
+  {value:'deposit', label:'定期存款',     icon:'🏦',cls:'icon--deposit'},
+  {value:'other',   label:'其他資產',     icon:'📦',cls:'icon--other'},
 ];
-const DEBT_TYPES = [
-  {value:'mortgage', label:'房貸',   icon:'🏠', cls:'icon--mortgage'},
-  {value:'carloan',  label:'車貸',   icon:'🚗', cls:'icon--carloan'},
-  {value:'personal', label:'信貸',   icon:'💳', cls:'icon--personal'},
-  {value:'credit',   label:'信用卡', icon:'💰', cls:'icon--credit'},
-  {value:'other',    label:'其他負債',icon:'📋', cls:'icon--debt-other'},
+const DEBT_TYPES=[
+  {value:'mortgage',label:'房貸',    icon:'🏠',cls:'icon--mortgage'},
+  {value:'carloan', label:'車貸',    icon:'🚗',cls:'icon--carloan'},
+  {value:'personal',label:'信貸',    icon:'💳',cls:'icon--personal'},
+  {value:'credit',  label:'信用卡',  icon:'💰',cls:'icon--credit'},
+  {value:'other',   label:'其他負債',icon:'📋',cls:'icon--debt-other'},
 ];
 
-/* ══════════════════════════════════════════════
+/* ══════════════════════════════════════════
    localStorage
-══════════════════════════════════════════════ */
-const LS = {
+══════════════════════════════════════════ */
+const LS={
   get(k,fb=[]){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},
 };
-const KEY_ASSET = 'nw_assets';
-const KEY_DEBT  = 'nw_debts';
+const KEY_A='nw_assets', KEY_D='nw_debts';
 
-/* ══════════════════════════════════════════════
+/* ══════════════════════════════════════════
    格式化
-══════════════════════════════════════════════ */
-function fmt(n){
-  if(n===null||n===undefined||isNaN(n))return'--';
-  return new Intl.NumberFormat('zh-TW').format(Math.round(n));
-}
-function fmtPct(r){
-  if(r===null||isNaN(r))return null;
-  const p=(r*100).toFixed(2);
-  return r>=0?`+${p}%`:`${p}%`;
-}
+══════════════════════════════════════════ */
+function fmt(n){if(n===null||n===undefined||isNaN(n))return'--';return new Intl.NumberFormat('zh-TW').format(Math.round(n))}
+function fmtPct(r){if(r===null||isNaN(r))return null;const p=(r*100).toFixed(2);return r>=0?`+${p}%`:`${p}%`}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function getTypeInfo(mode,val){
-  const list=mode==='asset'?ASSET_TYPES:DEBT_TYPES;
-  return list.find(t=>t.value===val)||list[list.length-1];
+function el(id){return document.getElementById(id)}
+function setText(id,t){const e=el(id);if(e)e.textContent=t}
+function getType(mode,val){return(mode==='asset'?ASSET_TYPES:DEBT_TYPES).find(t=>t.value===val)||(mode==='asset'?ASSET_TYPES:DEBT_TYPES).at(-1)}
+
+/* ══════════════════════════════════════════
+   頁面導覽
+══════════════════════════════════════════ */
+// 記錄上一頁，用於工具子頁返回
+let _prevPage='tools';
+
+const PAGE_META={
+  home:  {title:'資產負債儀表板', sub:'Net Worth Tracker', nav:'home'},
+  asset: {title:'資產',           sub:'Asset Management',  nav:'asset'},
+  debt:  {title:'負債',           sub:'Debt Management',   nav:'debt'},
+  tools: {title:'工具',           sub:'Financial Tools',   nav:'tools'},
+  mortgage:{title:'🏠 房貸試算', sub:'等額本息計算',       nav:'tools'},
+  cashflow:{title:'📊 現金流分析',sub:'月收支計算',         nav:'tools'},
+};
+
+function goTo(page){
+  // 隱藏所有頁面
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  // 顯示目標
+  const target=el('page-'+page);
+  if(target){target.classList.add('active');target.scrollTop=0;window.scrollTo(0,0)}
+  // 更新 header
+  const meta=PAGE_META[page]||{title:'',sub:''};
+  setText('headerTitle',meta.title);
+  setText('headerSub',meta.sub);
+  // 更新底部 nav
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const activeNav=el('nav-'+(meta.nav||page));
+  if(activeNav)activeNav.classList.add('active');
+  // 記錄上一頁（工具子頁用）
+  if(['home','asset','debt','tools'].includes(page))_prevPage=page;
 }
 
-/* ══════════════════════════════════════════════
+function openTool(tool){
+  _prevPage='tools';
+  goTo(tool);
+}
+
+/* ══════════════════════════════════════════
    渲染總覽
-══════════════════════════════════════════════ */
+══════════════════════════════════════════ */
 function renderSummary(){
-  const assets = LS.get(KEY_ASSET);
-  const debts  = LS.get(KEY_DEBT);
-  const totalA = assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
-  const totalD = debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
-  const net    = totalA - totalD;
-
-  // 淨資產
-  const netEl = document.getElementById('sNet');
+  const assets=LS.get(KEY_A), debts=LS.get(KEY_D);
+  const totalA=assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  const totalD=debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  const net=totalA-totalD;
+  const netEl=el('sNet');
   if(netEl){
-    netEl.textContent = fmt(net);
-    netEl.style.color = net>=0?'var(--green)':net<0?'var(--red)':'var(--t1)';
-    netEl.style.textShadow = net>=0?'0 0 32px rgba(34,211,168,.25)':net<0?'0 0 32px rgba(239,68,68,.2)':'none';
+    netEl.textContent=fmt(net);
+    netEl.style.color=net>=0?'var(--green)':net<0?'var(--red)':'var(--t1)';
+    netEl.style.textShadow=net>=0?'0 0 32px rgba(34,211,168,.25)':net<0?'0 0 32px rgba(239,68,68,.2)':'none';
   }
-  setText('sAsset', fmt(totalA));
-  setText('sDebt',  fmt(totalD));
-  setText('sAssetCount', assets.length+' 筆資產');
-  setText('sDebtCount',  debts.length+' 筆負債');
-  setText('assetTotal', assets.length?fmt(totalA)+' 元':'');
-  setText('debtTotal',  debts.length?fmt(totalD)+' 元':'');
+  setText('sAsset',fmt(totalA));
+  setText('sDebt',fmt(totalD));
+  setText('sAssetCount',assets.length+' 筆');
+  setText('sDebtCount',debts.length+' 筆');
+  setText('assetSubtitle','總計 '+fmt(totalA)+' 元 · '+assets.length+' 筆');
+  setText('debtSubtitle','總計 '+fmt(totalD)+' 元 · '+debts.length+' 筆');
+  // nav badge（有資料就顯示）
+  const ba=el('badge-asset'), bd=el('badge-debt');
+  if(ba)ba.className='nav-badge'+(assets.length?' show':'');
+  if(bd)bd.className='nav-badge'+(debts.length?' show':'');
 }
 
-/* ══════════════════════════════════════════════
-   渲染資產列表
-══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   產生 item HTML
+══════════════════════════════════════════ */
+function itemHTML(item,mode,index){
+  const t=getType(mode,item.type);
+  const amt=parseFloat(item.amount)||0;
+  const cost=parseFloat(item.cost);
+  const hasReturn=item.type==='etf'&&!isNaN(cost)&&cost>0;
+  const profit=hasReturn?amt-cost:null;
+  const rate=hasReturn?profit/cost:null;
+  const pctStr=hasReturn?fmtPct(rate):null;
+  const pColor=profit!==null&&profit>=0?'var(--green)':'var(--red)';
+  const meta=[];
+  if(item.note)meta.push(esc(item.note));
+  if(hasReturn)meta.push('成本 '+fmt(cost)+'元');
+  if(item.rate&&mode==='debt')meta.push('年利率 '+parseFloat(item.rate).toFixed(2)+'%');
+  return`<div class="item-card">
+    <div class="item-icon ${t.cls}">${t.icon}</div>
+    <div class="item-body">
+      <div class="item-name">${esc(item.name)||t.label}</div>
+      <div class="item-meta">${t.label}${meta.length?' · '+meta.join(' · '):''}</div>
+    </div>
+    <div class="item-right">
+      <div class="item-value ${mode==='asset'?'val--green':'val--red'}">${mode==='debt'?'-':''}${fmt(amt)} 元</div>
+      ${pctStr?`<div class="item-sub" style="color:${pColor}">${pctStr}（${profit>=0?'+':''}${fmt(profit)}）</div>`:''}
+    </div>
+    <div class="item-actions">
+      <button class="btn-sm" onclick="editItem('${mode}',${index})">✎</button>
+      <button class="btn-sm del" onclick="deleteItem('${mode}',${index})">✕</button>
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
+   渲染資產頁
+══════════════════════════════════════════ */
 function renderAssets(){
-  const list = LS.get(KEY_ASSET);
-  const el   = document.getElementById('assetList');
-  if(!el)return;
-  if(!list.length){el.innerHTML='<div class="empty-hint">尚未新增任何資產</div>';return}
-  el.innerHTML = list.map((a,i)=>{
-    const t    = getTypeInfo('asset',a.type);
-    const amt  = parseFloat(a.amount)||0;
-    const cost = parseFloat(a.cost);
-    const hasReturn = a.type==='etf' && !isNaN(cost) && cost>0;
-    const profit = hasReturn ? amt-cost : null;
-    const rate   = hasReturn ? profit/cost : null;
-    const pctStr = hasReturn ? fmtPct(rate) : null;
-    const pColor = profit!==null&&profit>=0?'var(--green)':'var(--red)';
-    const metaParts=[];
-    if(a.note)metaParts.push(esc(a.note));
-    if(hasReturn)metaParts.push(`成本 ${fmt(cost)} 元`);
-    return `<div class="item-card fade-in">
-      <div class="item-icon ${t.cls}">${t.icon}</div>
-      <div class="item-body">
-        <div class="item-name">${esc(a.name)||t.label}</div>
-        <div class="item-meta">${t.label}${metaParts.length?' · '+metaParts.join(' · '):''}</div>
-      </div>
-      <div class="item-right">
-        <div class="item-value val--green">${fmt(amt)} 元</div>
-        ${pctStr?`<div class="item-sub" style="color:${pColor}">${pctStr}（${profit>=0?'+':''}${fmt(profit)}）</div>`:''}
-      </div>
-      <div class="item-actions">
-        <button class="btn-sm" onclick="editItem('asset',${i})">✎</button>
-        <button class="btn-sm del" onclick="deleteItem('asset',${i})">✕</button>
-      </div>
-    </div>`;
-  }).join('');
+  const list=LS.get(KEY_A);
+  const c=el('assetList');
+  if(!c)return;
+  c.innerHTML=list.length
+    ?list.map((a,i)=>itemHTML(a,'asset',i)).join('')
+    :'<div class="empty-hint">尚未新增任何資產</div>';
+  // 首頁預覽（最多 3 筆）
+  const hc=el('homeAssetList');
+  if(hc)hc.innerHTML=list.length
+    ?list.slice(0,3).map((a,i)=>itemHTML(a,'asset',i)).join('')
+      +(list.length>3?`<div class="empty-hint" style="cursor:pointer" onclick="goTo('asset')">還有 ${list.length-3} 筆 · 查看全部 ›</div>`:'')
+    :'<div class="empty-hint">尚未新增資產 · <span style="color:var(--green);cursor:pointer" onclick="goTo(\'asset\')">立即新增 ›</span></div>';
 }
 
-/* ══════════════════════════════════════════════
-   渲染負債列表
-══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   渲染負債頁
+══════════════════════════════════════════ */
 function renderDebts(){
-  const list = LS.get(KEY_DEBT);
-  const el   = document.getElementById('debtList');
-  if(!el)return;
-  if(!list.length){el.innerHTML='<div class="empty-hint">尚未新增任何負債</div>';return}
-  el.innerHTML = list.map((d,i)=>{
-    const t = getTypeInfo('debt',d.type);
-    const amt = parseFloat(d.amount)||0;
-    const metaParts=[];
-    if(d.note)metaParts.push(esc(d.note));
-    if(d.rate)metaParts.push(`年利率 ${parseFloat(d.rate).toFixed(2)}%`);
-    return `<div class="item-card fade-in">
-      <div class="item-icon ${t.cls}">${t.icon}</div>
-      <div class="item-body">
-        <div class="item-name">${esc(d.name)||t.label}</div>
-        <div class="item-meta">${t.label}${metaParts.length?' · '+metaParts.join(' · '):''}</div>
-      </div>
-      <div class="item-right">
-        <div class="item-value val--red">-${fmt(amt)} 元</div>
-      </div>
-      <div class="item-actions">
-        <button class="btn-sm" onclick="editItem('debt',${i})">✎</button>
-        <button class="btn-sm del" onclick="deleteItem('debt',${i})">✕</button>
-      </div>
-    </div>`;
-  }).join('');
+  const list=LS.get(KEY_D);
+  const c=el('debtList');
+  if(!c)return;
+  c.innerHTML=list.length
+    ?list.map((d,i)=>itemHTML(d,'debt',i)).join('')
+    :'<div class="empty-hint">尚未新增任何負債</div>';
+  const hc=el('homeDebtList');
+  if(hc)hc.innerHTML=list.length
+    ?list.slice(0,3).map((d,i)=>itemHTML(d,'debt',i)).join('')
+      +(list.length>3?`<div class="empty-hint" style="cursor:pointer" onclick="goTo('debt')">還有 ${list.length-3} 筆 · 查看全部 ›</div>`:'')
+    :'<div class="empty-hint">尚未新增負債 · <span style="color:var(--green);cursor:pointer" onclick="goTo(\'debt\')">立即新增 ›</span></div>';
 }
 
 function renderAll(){renderSummary();renderAssets();renderDebts()}
 
-/* ══════════════════════════════════════════════
-   Modal 狀態
-══════════════════════════════════════════════ */
-let _mode='asset'; // 'asset' | 'debt'
-let _editIndex=-1;
+/* ══════════════════════════════════════════
+   Modal
+══════════════════════════════════════════ */
+let _mode='asset',_editIdx=-1;
 
 function openModal(mode){
-  _mode=mode;_editIndex=-1;
-  buildTypeSelect(mode);
-  clearForm();
-  document.getElementById('modalTitle').textContent = mode==='asset'?'新增資產':'新增負債';
-  document.getElementById('modalOverlay').classList.add('open');
+  _mode=mode;_editIdx=-1;
+  buildSelect(mode);clearForm();
+  setText('modalTitle',mode==='asset'?'新增資產':'新增負債');
+  el('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
-  setTimeout(()=>document.getElementById('fName').focus(),350);
+  setTimeout(()=>el('fName').focus(),320);
 }
 
 function editItem(mode,index){
-  _mode=mode;_editIndex=index;
-  const list=LS.get(mode==='asset'?KEY_ASSET:KEY_DEBT);
+  _mode=mode;_editIdx=index;
+  const list=LS.get(mode==='asset'?KEY_A:KEY_D);
   const item=list[index];if(!item)return;
-  buildTypeSelect(mode);
-  clearForm();
-  document.getElementById('modalTitle').textContent = mode==='asset'?'編輯資產':'編輯負債';
-  document.getElementById('fType').value   = item.type||'';
-  document.getElementById('fName').value   = item.name||'';
-  document.getElementById('fAmount').value = item.amount||'';
-  document.getElementById('fCost').value   = item.cost||'';
-  document.getElementById('fRate').value   = item.rate||'';
-  document.getElementById('fNote').value   = item.note||'';
+  buildSelect(mode);clearForm();
+  setText('modalTitle',mode==='asset'?'編輯資產':'編輯負債');
+  el('fType').value=item.type||'';
+  el('fName').value=item.name||'';
+  el('fAmount').value=item.amount||'';
+  el('fCost').value=item.cost||'';
+  el('fRate').value=item.rate||'';
+  el('fNote').value=item.note||'';
   onTypeChange();
-  document.getElementById('modalOverlay').classList.add('open');
+  el('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
 
 function closeModal(){
-  document.getElementById('modalOverlay').classList.remove('open');
+  el('modalOverlay').classList.remove('open');
   document.body.style.overflow='';
 }
 
-function handleOverlayClick(e){
-  if(e.target===document.getElementById('modalOverlay'))closeModal();
-}
+function handleOverlayClick(e){if(e.target===el('modalOverlay'))closeModal()}
 
-function buildTypeSelect(mode){
+function buildSelect(mode){
   const types=mode==='asset'?ASSET_TYPES:DEBT_TYPES;
-  const sel=document.getElementById('fType');
-  sel.innerHTML=types.map(t=>`<option value="${t.value}">${t.icon} ${t.label}</option>`).join('');
+  el('fType').innerHTML=types.map(t=>`<option value="${t.value}">${t.icon} ${t.label}</option>`).join('');
   onTypeChange();
 }
 
+const NAME_PH={cash:'例：第一銀行活存、iLEO',etf:'例：0050 元大台灣50',house:'例：台北市房屋',deposit:'例：一銀定存 2 年期',mortgage:'例：玉山房貸',carloan:'例：中租車貸',personal:'例：國泰信貸',credit:'例：台新信用卡'};
+
 function onTypeChange(){
-  const val=document.getElementById('fType').value;
-  const isEtf = val==='etf';
-  const isLoan = ['mortgage','carloan','personal','credit'].includes(val);
-  document.getElementById('fCostGroup').style.display = isEtf?'flex':'none';
-  document.getElementById('fRateGroup').style.display = isLoan?'flex':'none';
-  // placeholder 依類型調整
-  const namePH={cash:'例：第一銀行活存、iLEO',etf:'例：0050 元大台灣50',house:'例：台北市房屋',deposit:'例：一銀定存 2 年期',mortgage:'例：玉山房貸',carloan:'例：中租車貸',personal:'例：國泰信貸',credit:'例：台新信用卡'};
-  document.getElementById('fName').placeholder = namePH[val]||'請輸入名稱';
+  const v=el('fType').value;
+  el('fCostGroup').style.display=v==='etf'?'flex':'none';
+  el('fRateGroup').style.display=['mortgage','carloan','personal','credit'].includes(v)?'flex':'none';
+  el('fName').placeholder=NAME_PH[v]||'請輸入名稱';
 }
 
 function clearForm(){
-  ['fName','fAmount','fCost','fRate','fNote'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
-  const fe=document.getElementById('fError');if(fe){fe.textContent='';fe.classList.remove('show')}
+  ['fName','fAmount','fCost','fRate','fNote'].forEach(id=>{const e=el(id);if(e)e.value=''});
+  const fe=el('fError');if(fe){fe.textContent='';fe.classList.remove('show')}
 }
 
-/* ══════════════════════════════════════════════
-   儲存
-══════════════════════════════════════════════ */
 function saveItem(){
-  const type   = document.getElementById('fType').value;
-  const name   = document.getElementById('fName').value.trim();
-  const amount = parseFloat(document.getElementById('fAmount').value);
-  const cost   = parseFloat(document.getElementById('fCost').value);
-  const rate   = parseFloat(document.getElementById('fRate').value);
-  const note   = document.getElementById('fNote').value.trim();
-
-  // 驗證
-  if(!name){showErr('請輸入名稱');return}
-  if(isNaN(amount)||amount<0){showErr('請輸入有效金額（大於等於 0）');return}
-  if(!isNaN(rate)&&(rate<0||rate>50)){showErr('利率請輸入合理範圍（0 ~ 50%）');return}
-
+  const type=el('fType').value;
+  const name=el('fName').value.trim();
+  const amount=parseFloat(el('fAmount').value);
+  const cost=parseFloat(el('fCost').value);
+  const rate=parseFloat(el('fRate').value);
+  const note=el('fNote').value.trim();
+  if(!name){showErr('fError','請輸入名稱');return}
+  if(isNaN(amount)||amount<0){showErr('fError','請輸入有效金額（≥ 0）');return}
+  if(!isNaN(rate)&&(rate<0||rate>50)){showErr('fError','利率請輸入合理範圍');return}
   const item={type,name,amount};
   if(!isNaN(cost)&&cost>=0)item.cost=cost;
   if(!isNaN(rate)&&rate>=0)item.rate=rate;
   if(note)item.note=note;
-
-  const key  = _mode==='asset'?KEY_ASSET:KEY_DEBT;
-  const list = LS.get(key);
-  if(_editIndex>=0)list[_editIndex]=item;else list.push(item);
-  LS.set(key,list);
-
-  closeModal();
-  renderAll();
-}
-
-/* ══════════════════════════════════════════════
-   刪除
-══════════════════════════════════════════════ */
-function deleteItem(mode,index){
-  const key=mode==='asset'?KEY_ASSET:KEY_DEBT;
+  const key=_mode==='asset'?KEY_A:KEY_D;
   const list=LS.get(key);
-  const item=list[index];
-  if(!item)return;
-  if(!confirm(`確定刪除「${item.name||'此項目'}」？`))return;
-  list.splice(index,1);
+  if(_editIdx>=0)list[_editIdx]=item;else list.push(item);
   LS.set(key,list);
-  renderAll();
+  closeModal();renderAll();
 }
 
-/* ══════════════════════════════════════════════
-   工具
-══════════════════════════════════════════════ */
-function setText(id,text){const e=document.getElementById(id);if(e)e.textContent=text}
-function showErr(msg){const e=document.getElementById('fError');if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show')}
+function deleteItem(mode,index){
+  const key=mode==='asset'?KEY_A:KEY_D;
+  const list=LS.get(key);
+  if(!list[index])return;
+  if(!confirm(`確定刪除「${list[index].name||'此項目'}」？`))return;
+  list.splice(index,1);LS.set(key,list);renderAll();
+}
 
-/* ══════════════════════════════════════════════
+function showErr(id,msg){const e=el(id);if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show')}
+function clearErr(id){const e=el(id);if(!e)return;e.textContent='';e.classList.remove('show')}
+
+/* ══════════════════════════════════════════
+   工具：房貸試算
+══════════════════════════════════════════ */
+function calcMortgage(){
+  clearErr('mError');
+  const p=parseFloat(el('mPrincipal').value);
+  const r=parseFloat(el('mRate').value);
+  const n=parseInt(el('mPeriods').value);
+  if(isNaN(p)||p<=0){showErr('mError','請輸入有效本金');return}
+  if(isNaN(r)||r<=0||r>20){showErr('mError','請輸入合理年利率（0.01% ~ 20%）');return}
+  if(isNaN(n)||n<1){showErr('mError','請輸入有效期數');return}
+  const mr=r/100/12;
+  const f=Math.pow(1+mr,n);
+  const monthly=p*mr*f/(f-1);
+  const totalPay=monthly*n;
+  const totalInt=totalPay-p;
+  const rows=[
+    {k:'每月還款金額', v:fmt(Math.round(monthly))+' 元', color:'var(--green)', big:true},
+    {k:'貸款總利息',   v:fmt(Math.round(totalInt))+' 元', color:'var(--orange)'},
+    {k:'還款總金額',   v:fmt(Math.round(totalPay))+' 元', color:'var(--t1)'},
+    {k:'本金',         v:fmt(p)+' 元', color:'var(--t2)'},
+    {k:'利息佔比',     v:((totalInt/totalPay)*100).toFixed(1)+'%', color:'var(--t2)'},
+  ];
+  el('mortgageResultRows').innerHTML=rows.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border2)">
+      <span style="font-size:13px;color:var(--t2)">${r.k}</span>
+      <span style="font-size:${r.big?'20':'15'}px;font-weight:${r.big?'800':'700'};color:${r.color};font-variant-numeric:tabular-nums">${r.v}</span>
+    </div>`).join('');
+  el('mortgageResult').style.display='';
+}
+
+/* ══════════════════════════════════════════
+   工具：現金流分析
+══════════════════════════════════════════ */
+function calcCashflow(){
+  clearErr('cfError');
+  const inc=parseFloat(el('cfIncome').value);
+  const exp=parseFloat(el('cfExpense').value);
+  const res=parseFloat(el('cfReserve').value);
+  if(isNaN(inc)||inc<0){showErr('cfError','請輸入有效月收入');return}
+  if(isNaN(exp)||exp<0){showErr('cfError','請輸入有效月支出');return}
+  const bal=inc-exp;
+  const sr=inc>0?bal/inc:0;
+  const cov=(!isNaN(res)&&res>0&&exp>0)?res/exp:null;
+  const expRatio=inc>0?exp/inc:1;
+  const rows=[
+    {k:'月結餘',       v:(bal>=0?'+':'')+fmt(Math.round(bal))+' 元', color:bal>=0?'var(--green)':'var(--red)', big:true},
+    {k:'儲蓄率',       v:fmtPct(sr)||'--', color:sr>=.3?'var(--green)':sr>=.1?'var(--orange)':'var(--red)'},
+    {k:'支出佔收入',   v:(expRatio*100).toFixed(1)+'%', color:expRatio<=.7?'var(--green)':expRatio<=.9?'var(--orange)':'var(--red)'},
+    {k:'月收入',       v:fmt(inc)+' 元', color:'var(--t2)'},
+    {k:'月支出',       v:fmt(exp)+' 元', color:'var(--t2)'},
+  ];
+  if(cov!==null)rows.push({k:'預備金可撐月數',v:cov.toFixed(1)+' 個月',color:cov>=6?'var(--green)':cov>=3?'var(--orange)':'var(--red)'});
+  el('cashflowResultRows').innerHTML=rows.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border2)">
+      <span style="font-size:13px;color:var(--t2)">${r.k}</span>
+      <span style="font-size:${r.big?'20':'15'}px;font-weight:${r.big?'800':'700'};color:${r.color};font-variant-numeric:tabular-nums">${r.v}</span>
+    </div>`).join('');
+  el('cashflowResult').style.display='';
+}
+
+/* ══════════════════════════════════════════
    初始化
-══════════════════════════════════════════════ */
+══════════════════════════════════════════ */
 function init(){
   const now=new Date();
-  const hd=document.getElementById('hDate');
+  const hd=el('hDate');
   if(hd)hd.innerHTML=`<div>${now.toLocaleDateString('zh-TW',{year:'numeric',month:'long'})}</div><div>更新 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</div>`;
-  const fy=document.getElementById('fyear');
-  if(fy)fy.textContent='© '+now.getFullYear();
   renderAll();
+  goTo('home');
 }
 document.addEventListener('DOMContentLoaded',init);
 </script>
