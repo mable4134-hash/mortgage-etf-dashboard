@@ -117,6 +117,9 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .asset-banner{background:linear-gradient(135deg,#0D1F1A 0%,#111827 100%);border:1px solid rgba(34,211,168,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
 .asset-banner-sub{font-size:11px;color:var(--t2);margin-top:2px}
 
+/* ══ 負債頁橫幅 ══ */
+.debt-banner{background:linear-gradient(135deg,#1F0D0D 0%,#111827 100%);border:1px solid rgba(239,68,68,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
+
 /* ══ 版本標記 ══ */
 .ver-badge{text-align:center;font-size:10px;color:var(--tm);letter-spacing:.5px;padding:20px 0 4px}
 
@@ -228,7 +231,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     </div>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.2 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v1.3 · 個人資產負債儀表板</div>
 
   </div>
 </div>
@@ -256,22 +259,36 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.2 · 資產管理</div>
+    <div class="ver-badge">v1.3 · 資產管理</div>
 
   </div>
 </div>
 
 <!-- ══════════════════════════════════════
-     頁面 3：負債（開發中）
+     頁面 3：負債 v1.3
 ══════════════════════════════════════ -->
 <div class="page" id="page-debt">
   <div class="page-inner">
-    <div class="wip-page">
-      <div class="wip-icon">📉</div>
-      <div class="wip-title">負債管理</div>
-      <div class="wip-sub">追蹤房貸、車貸、信貸等各項負債與利率</div>
-      <div class="wip-badge">🚧 功能開發中</div>
+
+    <!-- 負債總計橫幅 -->
+    <div class="debt-banner">
+      <div class="summary-label">總負債 Total Debts</div>
+      <div class="summary-net">
+        <span class="summary-net-value val--red" id="debtBannerTotal">--</span>
+        <span class="summary-net-unit">元</span>
+      </div>
+      <div class="asset-banner-sub" id="debtBannerSub">-- 筆負債</div>
     </div>
+
+    <!-- 各類型負債列表 -->
+    <div id="debtPageList"></div>
+
+    <!-- 新增按鈕 -->
+    <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
+
+    <!-- 版本標記 -->
+    <div class="ver-badge">v1.3 · 負債管理</div>
+
   </div>
 </div>
 
@@ -506,7 +523,44 @@ function renderAssetPage(){
   }).join('');
 }
 
-function renderAll(){renderSummary();renderHomeLists();renderAssetPage()}
+/* ══ 渲染負債頁 ══ */
+function renderDebtPage(){
+  const debts=LS.get(KEY_D);
+  const total=debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  setText('debtBannerTotal',fmt(total));
+  setText('debtBannerSub',debts.length+' 筆負債');
+
+  const c=el('debtPageList');
+  if(!c)return;
+  if(!debts.length){
+    c.innerHTML='<div class="empty-hint">尚未新增任何負債<br>點下方按鈕開始新增</div>';
+    return;
+  }
+
+  // 依類型分組
+  const ORDER=['mortgage','carloan','personal','credit','other'];
+  const grouped={};
+  debts.forEach((d,i)=>{
+    const k=d.type||'other';
+    if(!grouped[k])grouped[k]=[];
+    grouped[k].push({...d,_idx:i});
+  });
+
+  c.innerHTML=ORDER.filter(k=>grouped[k]).map(k=>{
+    const t=getType('debt',k);
+    const items=grouped[k];
+    const subtotal=items.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+    return`<div class="asset-group">
+      <div class="asset-group-header">
+        <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
+        <div class="asset-group-total val--red">${fmt(subtotal)} 元</div>
+      </div>
+      ${items.map(d=>itemHTML(d,'debt',d._idx)).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderAll(){renderSummary();renderHomeLists();renderAssetPage();renderDebtPage()}
 
 /* ══ Modal ══ */
 let _mode='asset', _editIdx=-1;
