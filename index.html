@@ -106,6 +106,20 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .btn-add{width:100%;padding:13px;background:transparent;border:1px dashed var(--border);border-radius:var(--r12);color:var(--t2);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;touch-action:manipulation;margin-top:4px}
 .btn-add:hover,.btn-add:active{border-color:var(--green);color:var(--green)}
 
+/* ══ 資產分組 ══ */
+.asset-group{margin-bottom:16px}
+.asset-group-header{display:flex;align-items:center;justify-content:space-between;padding:0 4px;margin-bottom:8px}
+.asset-group-label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--t2);letter-spacing:.4px;text-transform:uppercase}
+.asset-group-icon{font-size:14px}
+.asset-group-total{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ══ 資產頁橫幅 ══ */
+.asset-banner{background:linear-gradient(135deg,#0D1F1A 0%,#111827 100%);border:1px solid rgba(34,211,168,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
+.asset-banner-sub{font-size:11px;color:var(--t2);margin-top:2px}
+
+/* ══ 版本標記 ══ */
+.ver-badge{text-align:center;font-size:10px;color:var(--tm);letter-spacing:.5px;padding:20px 0 4px}
+
 /* ══ 空白佔位頁 ══ */
 .wip-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:16px;text-align:center;padding:32px}
 .wip-icon{font-size:56px;line-height:1}
@@ -213,20 +227,37 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
       <div id="homeDebtList"></div>
     </div>
 
+    <!-- 版本標記 -->
+    <div class="ver-badge">v1.2 · 個人資產負債儀表板</div>
+
   </div>
 </div>
 
 <!-- ══════════════════════════════════════
-     頁面 2：資產（開發中）
+     頁面 2：資產 v1.2
 ══════════════════════════════════════ -->
 <div class="page" id="page-asset">
   <div class="page-inner">
-    <div class="wip-page">
-      <div class="wip-icon">💰</div>
-      <div class="wip-title">資產管理</div>
-      <div class="wip-sub">新增、編輯、分類管理你的所有資產項目</div>
-      <div class="wip-badge">🚧 功能開發中</div>
+
+    <!-- 資產總計橫幅 -->
+    <div class="asset-banner">
+      <div class="summary-label">總資產 Total Assets</div>
+      <div class="summary-net">
+        <span class="summary-net-value val--green" id="assetBannerTotal">--</span>
+        <span class="summary-net-unit">元</span>
+      </div>
+      <div class="asset-banner-sub" id="assetBannerSub">-- 筆資產</div>
     </div>
+
+    <!-- 各類型資產列表 -->
+    <div id="assetPageList"></div>
+
+    <!-- 新增按鈕 -->
+    <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
+
+    <!-- 版本標記 -->
+    <div class="ver-badge">v1.2 · 資產管理</div>
+
   </div>
 </div>
 
@@ -438,7 +469,44 @@ function renderHomeLists(){
     :'<div class="empty-hint">尚未新增任何負債</div>';
 }
 
-function renderAll(){renderSummary();renderHomeLists()}
+/* ══ 渲染資產頁 ══ */
+function renderAssetPage(){
+  const assets=LS.get(KEY_A);
+  const total=assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  setText('assetBannerTotal',fmt(total));
+  setText('assetBannerSub',assets.length+' 筆資產');
+
+  const c=el('assetPageList');
+  if(!c)return;
+  if(!assets.length){
+    c.innerHTML='<div class="empty-hint">尚未新增任何資產<br>點下方按鈕開始新增</div>';
+    return;
+  }
+
+  // 依類型分組顯示
+  const ORDER=['cash','etf','house','deposit','other'];
+  const grouped={};
+  assets.forEach((a,i)=>{
+    const k=a.type||'other';
+    if(!grouped[k])grouped[k]=[];
+    grouped[k].push({...a,_idx:i});
+  });
+
+  c.innerHTML=ORDER.filter(k=>grouped[k]).map(k=>{
+    const t=getType('asset',k);
+    const items=grouped[k];
+    const subtotal=items.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+    return`<div class="asset-group">
+      <div class="asset-group-header">
+        <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
+        <div class="asset-group-total val--green">${fmt(subtotal)} 元</div>
+      </div>
+      ${items.map(a=>itemHTML(a,'asset',a._idx)).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderAll(){renderSummary();renderHomeLists();renderAssetPage()}
 
 /* ══ Modal ══ */
 let _mode='asset', _editIdx=-1;
