@@ -56,13 +56,13 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .summary-banner{background:linear-gradient(135deg,#0D1F1A 0%,#111827 50%,#13111F 100%);border:1px solid rgba(34,211,168,.15);border-radius:var(--r20);padding:24px;margin-bottom:16px;position:relative;overflow:hidden}
 .summary-banner::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(34,211,168,.06),transparent 70%);pointer-events:none}
 .summary-label{font-size:11px;color:var(--t2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
-.summary-net{display:flex;align-items:baseline;gap:8px;margin-bottom:20px}
-.summary-net-value{font-size:48px;font-weight:800;letter-spacing:-2px;font-variant-numeric:tabular-nums;line-height:1;color:var(--green);text-shadow:0 0 32px rgba(34,211,168,.25)}
+.summary-net{display:flex;align-items:baseline;gap:8px;margin-bottom:20px;flex-wrap:wrap;min-width:0}
+.summary-net-value{font-size:clamp(28px,10vw,48px);font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1.1;color:var(--green);text-shadow:0 0 32px rgba(34,211,168,.25);word-break:break-all;min-width:0;max-width:100%}
 .summary-net-unit{font-size:16px;color:var(--t2);font-weight:500}
 .summary-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.summary-block{background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:var(--r12);padding:12px 14px}
+.summary-block{background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:var(--r12);padding:12px 14px;min-width:0;overflow:hidden}
 .summary-block-label{font-size:10px;color:var(--tm);letter-spacing:.5px;margin-bottom:4px}
-.summary-block-value{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.summary-block-value{font-size:clamp(14px,4.5vw,20px);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.3px;word-break:break-all;line-height:1.2}
 .summary-block-sub{font-size:10px;color:var(--t2);margin-top:2px}
 .val--green{color:var(--green)}
 .val--red{color:var(--red)}
@@ -179,7 +179,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .fade-in{animation:fadeIn .25s ease forwards}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media(min-width:600px){.page{padding:24px 24px calc(var(--nav-h)+24px)}.summary-net-value{font-size:56px}}
+@media(min-width:600px){.page{padding:24px 24px calc(var(--nav-h)+24px)}.summary-net-value{font-size:clamp(40px,6vw,56px);word-break:normal;letter-spacing:-2px}.summary-block-value{font-size:clamp(16px,2.5vw,20px);word-break:normal}}
 </style>
 </head>
 <body>
