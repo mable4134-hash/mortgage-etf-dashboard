@@ -120,6 +120,9 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 /* ══ 負債頁橫幅 ══ */
 .debt-banner{background:linear-gradient(135deg,#1F0D0D 0%,#111827 100%);border:1px solid rgba(239,68,68,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
 
+/* ══ 工具頁：收入橫幅 ══ */
+.income-banner{background:linear-gradient(135deg,#0D1F1A 0%,#111827 100%);border:1px solid rgba(34,211,168,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
+
 /* ══ 工具頁：支出橫幅 ══ */
 .expense-banner{background:linear-gradient(135deg,#1F1200 0%,#111827 100%);border:1px solid rgba(249,115,22,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
 
@@ -251,7 +254,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     </div>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.5 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v1.6 · 個人資產負債儀表板</div>
 
   </div>
 </div>
@@ -279,7 +282,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.5 · 資產管理</div>
+    <div class="ver-badge">v1.6 · 資產管理</div>
 
   </div>
 </div>
@@ -307,16 +310,34 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.5 · 負債管理</div>
+    <div class="ver-badge">v1.6 · 負債管理</div>
 
   </div>
 </div>
 
 <!-- ══════════════════════════════════════
-     頁面 4：工具 v1.5
+     頁面 4：工具 v1.6
 ══════════════════════════════════════ -->
 <div class="page" id="page-tools">
   <div class="page-inner">
+
+    <!-- 每月收入橫幅 -->
+    <div class="income-banner">
+      <div class="summary-label">每月收入 Monthly Income</div>
+      <div class="summary-net">
+        <span class="summary-net-value val--green" id="incomeBannerTotal">--</span>
+        <span class="summary-net-unit">元 / 月</span>
+      </div>
+      <div class="asset-banner-sub" id="incomeBannerSub">-- 筆收入</div>
+    </div>
+
+    <!-- 各類型收入列表 -->
+    <div id="incomePageList"></div>
+
+    <!-- 新增收入按鈕 -->
+    <button class="btn-add" onclick="openIncomeModal()">＋ 新增每月收入</button>
+
+    <div style="height:16px"></div>
 
     <!-- 每月固定支出橫幅 -->
     <div class="expense-banner">
@@ -331,12 +352,50 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <!-- 各類型支出列表 -->
     <div id="expensePageList"></div>
 
-    <!-- 新增按鈕 -->
+    <!-- 新增支出按鈕 -->
     <button class="btn-add" onclick="openExpenseModal()">＋ 新增固定支出</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.5 · 每月固定支出</div>
+    <div class="ver-badge">v1.6 · 每月收入 & 固定支出</div>
 
+  </div>
+</div>
+
+<!-- ══ Modal：收入新增 / 編輯 ══ -->
+<div class="modal-overlay" id="incomeOverlay" onclick="handleIncomeOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="incomeModalTitle">新增每月收入</div>
+      <button class="modal-close" onclick="closeIncomeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">類型</label>
+        <select class="form-select" id="ifType">
+          <option value="salary">💼 薪資</option>
+          <option value="bonus">🎁 獎金</option>
+          <option value="rent">🏠 租金</option>
+          <option value="dividend">📈 股息</option>
+          <option value="interest">🏦 利息</option>
+          <option value="parttime">⚡ 兼職</option>
+          <option value="other">📋 其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="ifName">名稱</label>
+        <input class="form-input" id="ifName" type="text" placeholder="例：正職薪資、0050 股息" maxlength="30"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="ifAmount">每月金額（元）</label>
+        <input class="form-input" id="ifAmount" type="number" placeholder="例：65000" min="0" inputmode="numeric"/>
+      </div>
+      <div class="form-error" id="ifError"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveIncome()">💾 儲存</button>
+      <button class="btn-cancel" onclick="closeIncomeModal()">取消</button>
+    </div>
   </div>
 </div>
 
@@ -690,7 +749,126 @@ function renderDebtPage(){
   }).join('');
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderAssetPage();renderDebtPage();renderExpensePage()}
+function renderAll(){renderSummary();renderHomeOverview();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage()}
+
+/* ══ 收入類型設定 ══ */
+const INCOME_TYPES={
+  salary:   {label:'薪資', icon:'💼', cls:'icon--cash'},
+  bonus:    {label:'獎金', icon:'🎁', cls:'icon--deposit'},
+  rent:     {label:'租金', icon:'🏠', cls:'icon--house'},
+  dividend: {label:'股息', icon:'📈', cls:'icon--etf'},
+  interest: {label:'利息', icon:'🏦', cls:'icon--deposit'},
+  parttime: {label:'兼職', icon:'⚡', cls:'icon--other'},
+  other:    {label:'其他', icon:'📋', cls:'icon--debt-other'},
+};
+const KEY_I='nw_income';
+
+/* ══ 渲染收入區塊 ══ */
+function renderIncomePage(){
+  const list=LS.get(KEY_I);
+  const total=list.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  setText('incomeBannerTotal',fmt(total));
+  setText('incomeBannerSub',list.length+' 筆收入');
+
+  const c=el('incomePageList');
+  if(!c)return;
+  if(!list.length){
+    c.innerHTML='<div class="empty-hint">尚未新增任何收入<br>點下方按鈕開始新增</div>';
+    return;
+  }
+
+  const ORDER=['salary','bonus','rent','dividend','interest','parttime','other'];
+  const grouped={};
+  list.forEach((e,i)=>{
+    const k=e.type||'other';
+    if(!grouped[k])grouped[k]=[];
+    grouped[k].push({...e,_idx:i});
+  });
+
+  c.innerHTML=ORDER.filter(k=>grouped[k]).map(k=>{
+    const t=INCOME_TYPES[k]||INCOME_TYPES.other;
+    const items=grouped[k];
+    const subtotal=items.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+    return`<div class="asset-group">
+      <div class="asset-group-header">
+        <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
+        <div class="asset-group-total val--green">${fmt(subtotal)} 元 / 月</div>
+      </div>
+      ${items.map(e=>`<div class="item-card">
+        <div class="item-icon ${t.cls}">${t.icon}</div>
+        <div class="item-body">
+          <div class="item-name">${esc(e.name)||t.label}</div>
+          <div class="item-meta">${t.label}</div>
+        </div>
+        <div class="item-right">
+          <div class="item-value val--green">${fmt(parseFloat(e.amount)||0)} 元 / 月</div>
+        </div>
+        <div class="item-actions">
+          <button class="btn-sm" onclick="editIncome(${e._idx})">✎</button>
+          <button class="btn-sm del" onclick="deleteIncome(${e._idx})">✕</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* ══ 收入 Modal ══ */
+let _incomeEditIdx=-1;
+
+function openIncomeModal(){
+  _incomeEditIdx=-1;
+  el('ifType').value='salary';
+  el('ifName').value='';
+  el('ifAmount').value='';
+  clearErr('ifError');
+  setText('incomeModalTitle','新增每月收入');
+  el('incomeOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>el('ifName').focus(),320);
+}
+
+function editIncome(index){
+  const list=LS.get(KEY_I);
+  const item=list[index];if(!item)return;
+  _incomeEditIdx=index;
+  el('ifType').value=item.type||'salary';
+  el('ifName').value=item.name||'';
+  el('ifAmount').value=item.amount||'';
+  clearErr('ifError');
+  setText('incomeModalTitle','編輯每月收入');
+  el('incomeOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeIncomeModal(){
+  el('incomeOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function handleIncomeOverlayClick(e){
+  if(e.target===el('incomeOverlay'))closeIncomeModal();
+}
+
+function saveIncome(){
+  const type=el('ifType').value;
+  const name=el('ifName').value.trim();
+  const amount=parseFloat(el('ifAmount').value);
+  if(!name){showErr('ifError','請輸入名稱');return}
+  if(isNaN(amount)||amount<0){showErr('ifError','請輸入有效金額（≥ 0）');return}
+  const item={type,name,amount};
+  const list=LS.get(KEY_I);
+  if(_incomeEditIdx>=0)list[_incomeEditIdx]=item;else list.push(item);
+  LS.set(KEY_I,list);
+  closeIncomeModal();
+  renderIncomePage();
+}
+
+function deleteIncome(index){
+  const list=LS.get(KEY_I);
+  if(!list[index])return;
+  if(!confirm(`確定刪除「${list[index].name||'此項目'}」？`))return;
+  list.splice(index,1);LS.set(KEY_I,list);renderIncomePage();
+}
 
 /* ══ 支出類型設定 ══ */
 const EXPENSE_TYPES={
