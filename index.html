@@ -181,6 +181,20 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .overview-row-pct{font-size:10px;color:var(--tm);margin-top:1px;font-variant-numeric:tabular-nums}
 .overview-empty{font-size:12px;color:var(--tm);text-align:center;padding:20px}
 
+/* ══ 現金流卡片 ══ */
+.dot--cashflow{background:var(--blue);box-shadow:0 0 5px var(--blue)}
+.cashflow-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden}
+.cashflow-main{padding:20px 18px 14px;display:flex;flex-direction:column;gap:4px}
+.cashflow-main-label{font-size:11px;color:var(--t2);letter-spacing:.5px}
+.cashflow-main-value{font-size:clamp(28px,8vw,40px);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px;line-height:1.1;word-break:break-all}
+.cashflow-main-unit{font-size:13px;color:var(--t2);font-weight:500}
+.cashflow-divider{height:1px;background:var(--border2);margin:0 18px}
+.cashflow-stats{display:flex;align-items:stretch;padding:12px 4px}
+.cashflow-stat{flex:1;display:flex;flex-direction:column;gap:4px;padding:6px 10px;text-align:center}
+.cashflow-stat-label{font-size:10px;color:var(--tm);letter-spacing:.3px;white-space:nowrap}
+.cashflow-stat-value{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.cashflow-stat-sep{width:1px;background:var(--border2);flex-shrink:0;margin:4px 0}
+
 /* ══ 動畫 ══ */
 .fade-in{animation:fadeIn .25s ease forwards}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -253,8 +267,45 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
       </div>
     </div>
 
+    <!-- 每月現金流 -->
+    <div class="home-section">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot dot--cashflow" id="cashflowDot"></span>每月現金流</div>
+      </div>
+      <div class="cashflow-card" id="cashflowCard">
+
+        <!-- 可支配金額（大數字） -->
+        <div class="cashflow-main">
+          <div class="cashflow-main-label">每月可支配金額</div>
+          <div class="cashflow-main-value" id="cfDisposable">--</div>
+          <div class="cashflow-main-unit">元 / 月</div>
+        </div>
+
+        <div class="cashflow-divider"></div>
+
+        <!-- 三欄：收入、支出、儲蓄率 -->
+        <div class="cashflow-stats">
+          <div class="cashflow-stat">
+            <div class="cashflow-stat-label">每月收入</div>
+            <div class="cashflow-stat-value val--green" id="cfIncome">--</div>
+          </div>
+          <div class="cashflow-stat-sep"></div>
+          <div class="cashflow-stat">
+            <div class="cashflow-stat-label">固定支出</div>
+            <div class="cashflow-stat-value val--orange" id="cfExpense">--</div>
+          </div>
+          <div class="cashflow-stat-sep"></div>
+          <div class="cashflow-stat">
+            <div class="cashflow-stat-label">儲蓄率</div>
+            <div class="cashflow-stat-value" id="cfSavings">--</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.6 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v1.7 · 個人資產負債儀表板</div>
 
   </div>
 </div>
@@ -282,7 +333,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.6 · 資產管理</div>
+    <div class="ver-badge">v1.7 · 資產管理</div>
 
   </div>
 </div>
@@ -310,7 +361,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.6 · 負債管理</div>
+    <div class="ver-badge">v1.7 · 負債管理</div>
 
   </div>
 </div>
@@ -356,7 +407,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
     <button class="btn-add" onclick="openExpenseModal()">＋ 新增固定支出</button>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.6 · 每月收入 & 固定支出</div>
+    <div class="ver-badge">v1.7 · 每月收入 & 固定支出</div>
 
   </div>
 </div>
@@ -749,7 +800,49 @@ function renderDebtPage(){
   }).join('');
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage()}
+/* ══ 渲染現金流卡片（v1.7） ══ */
+function renderCashflow(){
+  const incomeList  = LS.get(KEY_I);
+  const expenseList = LS.get(KEY_E);
+  const totalIncome  = incomeList.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const totalExpense = expenseList.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const disposable   = totalIncome - totalExpense;
+  const savingsRate  = totalIncome > 0 ? (disposable / totalIncome * 100) : null;
+
+  const isPos = disposable >= 0;
+  const dot   = el('cashflowDot');
+  const main  = el('cfDisposable');
+
+  // 可支配金額顏色
+  if(dot)  dot.style.background = isPos ? 'var(--green)' : 'var(--red)',
+           dot.style.boxShadow  = isPos ? '0 0 5px var(--green)' : '0 0 5px var(--red)';
+  if(main){
+    main.textContent = (isPos ? '+' : '') + fmt(Math.round(disposable));
+    main.style.color = isPos ? 'var(--green)' : 'var(--red)';
+    main.style.textShadow = isPos
+      ? '0 0 24px rgba(34,211,168,.25)'
+      : '0 0 24px rgba(239,68,68,.2)';
+  }
+
+  // 收入、支出、儲蓄率
+  setText('cfIncome',  totalIncome  ? fmt(totalIncome)  + ' 元' : '--');
+  setText('cfExpense', totalExpense ? fmt(totalExpense) + ' 元' : '--');
+
+  const savEl = el('cfSavings');
+  if(savEl){
+    if(savingsRate === null){
+      savEl.textContent = '--';
+      savEl.style.color = 'var(--t2)';
+    } else {
+      savEl.textContent = savingsRate.toFixed(1) + '%';
+      savEl.style.color = savingsRate >= 30
+        ? 'var(--green)' : savingsRate >= 10
+        ? 'var(--orange)' : 'var(--red)';
+    }
+  }
+}
+
+function renderAll(){renderSummary();renderHomeOverview();renderCashflow();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage()}
 
 /* ══ 收入類型設定 ══ */
 const INCOME_TYPES={
@@ -1089,4 +1182,3 @@ document.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
 </html>
-
