@@ -74,43 +74,6 @@
       </div>
     </div>
 
-    <!-- 每月現金流 -->
-    <div class="home-section">
-      <div class="section-header">
-        <div class="section-title"><span class="section-dot dot--cashflow" id="cashflowDot"></span>每月現金流</div>
-      </div>
-      <div class="cashflow-card" id="cashflowCard">
-
-        <!-- 可支配金額（大數字） -->
-        <div class="cashflow-main">
-          <div class="cashflow-main-label">每月可支配金額</div>
-          <div class="cashflow-main-value" id="cfDisposable">--</div>
-          <div class="cashflow-main-unit">元 / 月</div>
-        </div>
-
-        <div class="cashflow-divider"></div>
-
-        <!-- 三欄：收入、支出、儲蓄率 -->
-        <div class="cashflow-stats">
-          <div class="cashflow-stat">
-            <div class="cashflow-stat-label">每月收入</div>
-            <div class="cashflow-stat-value val--green" id="cfIncome">--</div>
-          </div>
-          <div class="cashflow-stat-sep"></div>
-          <div class="cashflow-stat">
-            <div class="cashflow-stat-label">固定支出</div>
-            <div class="cashflow-stat-value val--orange" id="cfExpense">--</div>
-          </div>
-          <div class="cashflow-stat-sep"></div>
-          <div class="cashflow-stat">
-            <div class="cashflow-stat-label">儲蓄率</div>
-            <div class="cashflow-stat-value" id="cfSavings">--</div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
     <!-- 財務健康分析 -->
     <div class="home-section">
       <div class="section-header">
@@ -174,6 +137,53 @@
       </div>
     </div>
 
+    <!-- 資產配置分析（v2.0） -->
+    <div class="home-section">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot" id="allocDot"></span>資產配置分析</div>
+      </div>
+      <div class="alloc-card" id="allocCard">
+        <div class="overview-empty">尚未新增任何資產</div>
+      </div>
+    </div>
+
+    <!-- 每月現金流 -->
+    <div class="home-section">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot dot--cashflow" id="cashflowDot"></span>每月現金流</div>
+      </div>
+      <div class="cashflow-card" id="cashflowCard">
+
+        <!-- 可支配金額（大數字） -->
+        <div class="cashflow-main">
+          <div class="cashflow-main-label">每月可支配金額</div>
+          <div class="cashflow-main-value" id="cfDisposable">--</div>
+          <div class="cashflow-main-unit">元 / 月</div>
+        </div>
+
+        <div class="cashflow-divider"></div>
+
+        <!-- 三欄：收入、支出、儲蓄率 -->
+        <div class="cashflow-stats">
+          <div class="cashflow-stat">
+            <div class="cashflow-stat-label">每月收入</div>
+            <div class="cashflow-stat-value val--green" id="cfIncome">--</div>
+          </div>
+          <div class="cashflow-stat-sep"></div>
+          <div class="cashflow-stat">
+            <div class="cashflow-stat-label">固定支出</div>
+            <div class="cashflow-stat-value val--orange" id="cfExpense">--</div>
+          </div>
+          <div class="cashflow-stat-sep"></div>
+          <div class="cashflow-stat">
+            <div class="cashflow-stat-label">儲蓄率</div>
+            <div class="cashflow-stat-value" id="cfSavings">--</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- 財務目標摘要 -->
     <div class="home-section">
       <div class="section-header">
@@ -186,7 +196,22 @@
     </div>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.9 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v2.0 · 個人資產負債儀表板</div>
+
+    <!-- Changelog -->
+    <div class="changelog-card">
+      <div class="changelog-header">
+        <span class="changelog-version">Version v2.0</span>
+      </div>
+      <div class="changelog-subtitle">What's New</div>
+      <ul class="changelog-list">
+        <li>新增資產配置分析</li>
+        <li>自動計算各類資產占比</li>
+        <li>新增資產集中度提醒</li>
+        <li>Dashboard 新增配置摘要</li>
+        <li>不修改既有資料結構</li>
+      </ul>
+    </div>
 
   </div>
 </div>
