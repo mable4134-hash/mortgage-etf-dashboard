@@ -34,6 +34,7 @@ const PAGE_META={
   home: {title:'資產負債儀表板', sub:'Net Worth Tracker'},
   asset:{title:'資產管理',       sub:'Asset Management'},
   debt: {title:'負債管理',       sub:'Debt Management'},
+  goals:{title:'財務目標',       sub:'Financial Goals'},
   tools:{title:'財務工具',       sub:'Financial Tools'},
 };
 function goTo(page){
@@ -400,7 +401,190 @@ function renderHealthCard() {
   setMetric('savRatioDot', 'savRatioVal',  savRate,  'sav',  savRate  !==null ? (savRate  *100).toFixed(1)+'%' : '--');
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderCashflow();renderHealthCard();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage()}
+function renderAll(){renderSummary();renderHomeOverview();renderCashflow();renderHealthCard();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
+
+/* ══════════════════════════════════════════
+   Goals（v1.9）
+══════════════════════════════════════════ */
+const KEY_G = 'nw_goals';
+
+const GOAL_TYPES = {
+  networth:  { label:'淨資產',      icon:'🏠', cls:'icon--house'   },
+  cash:      { label:'現金',         icon:'💰', cls:'icon--cash'    },
+  etf:       { label:'股票／ETF',    icon:'📈', cls:'icon--etf'     },
+  deposit:   { label:'定存',         icon:'🏦', cls:'icon--deposit' },
+  emergency: { label:'緊急預備金',   icon:'🚨', cls:'icon--other'   },
+  custom:    { label:'自訂目標',     icon:'🎯', cls:'icon--cash'    },
+};
+
+/**
+ * 依目標類型自動讀取目前金額
+ * 讀取現有 localStorage，不新增任何 key
+ */
+function getCurrentByType(type) {
+  const assets  = LS.get(KEY_A);
+  const debts   = LS.get(KEY_D);
+  const totalA  = assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  const totalD  = debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+
+  if (type === 'networth')  return totalA - totalD;
+  if (type === 'cash')      return assets.filter(a=>a.type==='cash').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  if (type === 'etf')       return assets.filter(a=>a.type==='etf').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  if (type === 'deposit')   return assets.filter(a=>a.type==='deposit').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  if (type === 'emergency') return assets.filter(a=>a.type==='cash').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  return null; // custom：無法自動對應
+}
+
+/** 進度條顏色 */
+function goalBarColor(pct) {
+  if (pct >= 80) return 'var(--green)';
+  if (pct >= 50) return 'var(--orange)';
+  return 'var(--red)';
+}
+
+/** 渲染 Goals 頁 */
+function renderGoalsPage() {
+  const list = LS.get(KEY_G);
+  setText('goalsSubtitle', list.length ? list.length + ' 個目標' : '追蹤你的財務里程碑');
+  const c = el('goalsPageList');
+  if (!c) return;
+  if (!list.length) {
+    c.innerHTML = '<div class="empty-hint">尚未設定任何目標<br>點下方按鈕開始新增</div>';
+    return;
+  }
+  c.innerHTML = list.map((g, i) => {
+    const t       = GOAL_TYPES[g.type] || GOAL_TYPES.custom;
+    const target  = parseFloat(g.target) || 0;
+    const current = g.type === 'custom' ? 0 : (getCurrentByType(g.type) || 0);
+    const pct     = target > 0 ? Math.min(Math.round(current / target * 100), 100) : 0;
+    const color   = goalBarColor(pct);
+    const canAuto = g.type !== 'custom';
+    return `<div class="goal-card">
+      <div class="goal-card-header">
+        <div class="goal-card-left">
+          <div class="goal-card-icon ${t.cls}">${t.icon}</div>
+          <div>
+            <div class="goal-card-name">${esc(g.name)}</div>
+            <div class="goal-card-note">${g.note ? esc(g.note) : t.label}</div>
+          </div>
+        </div>
+        <div class="goal-card-pct" style="color:${color}">${pct}%</div>
+      </div>
+      <div class="goal-bar-bg">
+        <div class="goal-bar-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="goal-card-footer">
+        <div class="goal-amounts">
+          ${canAuto ? `目前 ${fmt(Math.round(current))} 元 ／ ` : ''}目標 ${fmt(target)} 元
+        </div>
+        <div class="goal-actions">
+          <button class="btn-sm" onclick="editGoal(${i})">✎</button>
+          <button class="btn-sm del" onclick="deleteGoal(${i})">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/** 首頁摘要：完成率最高的 3 個 */
+function renderGoalsSummary() {
+  const list = LS.get(KEY_G);
+  const c = el('homeGoalsSummary');
+  if (!c) return;
+  if (!list.length) {
+    c.innerHTML = '<div class="overview-empty">尚未設定任何目標 · <span style="color:var(--green);cursor:pointer" onclick="goTo(\'goals\')">立即新增 ›</span></div>';
+    return;
+  }
+  // 計算各目標完成率並排序
+  const ranked = list.map((g, i) => {
+    const target  = parseFloat(g.target) || 0;
+    const current = g.type === 'custom' ? 0 : (getCurrentByType(g.type) || 0);
+    const pct     = target > 0 ? Math.min(Math.round(current / target * 100), 100) : 0;
+    return { g, i, pct };
+  }).sort((a, b) => b.pct - a.pct).slice(0, 3);
+
+  c.innerHTML = ranked.map(({ g, pct }) => {
+    const t     = GOAL_TYPES[g.type] || GOAL_TYPES.custom;
+    const color = goalBarColor(pct);
+    return `<div class="goal-summary-row">
+      <div class="goal-summary-left">
+        <div class="goal-summary-icon">${t.icon}</div>
+        <div class="goal-summary-name">${esc(g.name)}</div>
+      </div>
+      <div class="goal-summary-right">
+        <div class="goal-mini-bar-bg">
+          <div class="goal-mini-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <div class="goal-summary-pct" style="color:${color}">${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══ Goals Modal ══ */
+let _goalEditIdx = -1;
+
+function openGoalModal() {
+  _goalEditIdx = -1;
+  el('gfType').value  = 'networth';
+  el('gfName').value  = '';
+  el('gfTarget').value= '';
+  el('gfNote').value  = '';
+  clearErr('gfError');
+  setText('goalModalTitle', '新增財務目標');
+  el('goalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => el('gfName').focus(), 320);
+}
+
+function editGoal(index) {
+  const list = LS.get(KEY_G);
+  const item = list[index]; if (!item) return;
+  _goalEditIdx = index;
+  el('gfType').value   = item.type   || 'networth';
+  el('gfName').value   = item.name   || '';
+  el('gfTarget').value = item.target || '';
+  el('gfNote').value   = item.note   || '';
+  clearErr('gfError');
+  setText('goalModalTitle', '編輯財務目標');
+  el('goalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeGoalModal() {
+  el('goalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleGoalOverlayClick(e) {
+  if (e.target === el('goalOverlay')) closeGoalModal();
+}
+
+function saveGoal() {
+  const type   = el('gfType').value;
+  const name   = el('gfName').value.trim();
+  const target = parseFloat(el('gfTarget').value);
+  const note   = el('gfNote').value.trim();
+  if (!name)                  { showErr('gfError', '請輸入目標名稱'); return; }
+  if (isNaN(target)||target<=0){ showErr('gfError', '請輸入有效目標金額（> 0）'); return; }
+  const item = { type, name, target, note };
+  const list = LS.get(KEY_G);
+  if (_goalEditIdx >= 0) list[_goalEditIdx] = item; else list.push(item);
+  LS.set(KEY_G, list);
+  closeGoalModal();
+  renderGoalsPage();
+  renderGoalsSummary();
+}
+
+function deleteGoal(index) {
+  const list = LS.get(KEY_G);
+  if (!list[index]) return;
+  if (!confirm(`確定刪除「${list[index].name || '此目標'}」？`)) return;
+  list.splice(index, 1);
+  LS.set(KEY_G, list);
+  renderGoalsPage();
+  renderGoalsSummary();
+}
 
 /* ══ 收入類型設定 ══ */
 const INCOME_TYPES={
