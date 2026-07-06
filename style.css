@@ -208,3 +208,31 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(min-width:600px){.page{padding:24px 24px calc(var(--nav-h)+24px)}.summary-net-value{font-size:clamp(40px,6vw,56px);word-break:normal;letter-spacing:-2px}.summary-block-value{font-size:clamp(16px,2.5vw,20px);word-break:normal}}
+
+/* ══ Goals 頁（v1.9） ══ */
+.home-section-link{font-size:12px;color:var(--green);font-weight:600;cursor:pointer;touch-action:manipulation}
+.goal-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px;margin-bottom:10px}
+.goal-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.goal-card-left{display:flex;align-items:center;gap:10px}
+.goal-card-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.goal-card-name{font-size:14px;font-weight:700;color:var(--t1)}
+.goal-card-note{font-size:11px;color:var(--tm);margin-top:1px}
+.goal-card-pct{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.goal-bar-bg{height:8px;background:var(--stat);border-radius:99px;overflow:hidden;margin-bottom:10px}
+.goal-bar-fill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.goal-card-footer{display:flex;justify-content:space-between;align-items:center}
+.goal-amounts{font-size:11px;color:var(--t2);font-variant-numeric:tabular-nums}
+.goal-actions{display:flex;gap:4px}
+
+/* Goals 首頁摘要 */
+.goal-summary-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r12);margin-bottom:8px}
+.goal-summary-left{display:flex;align-items:center;gap:10px}
+.goal-summary-icon{font-size:18px;width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--stat)}
+.goal-summary-name{font-size:13px;font-weight:600;color:var(--t1)}
+.goal-summary-right{display:flex;align-items:center;gap:10px}
+.goal-summary-pct{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+.goal-mini-bar-bg{width:60px;height:5px;background:var(--stat);border-radius:99px;overflow:hidden}
+.goal-mini-bar-fill{height:100%;border-radius:99px}
+
+/* page-header subtitle */
+.page-subtitle{font-size:12px;color:var(--t2);margin-top:2px}
