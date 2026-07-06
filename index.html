@@ -174,8 +174,19 @@
       </div>
     </div>
 
+    <!-- 財務目標摘要 -->
+    <div class="home-section">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot" style="background:var(--purple);box-shadow:0 0 5px var(--purple)"></span>財務目標</div>
+        <span class="home-section-link" onclick="goTo('goals')">查看全部 ›</span>
+      </div>
+      <div id="homeGoalsSummary">
+        <div class="overview-empty">尚未設定任何目標</div>
+      </div>
+    </div>
+
     <!-- 版本標記 -->
-    <div class="ver-badge">v1.8 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v1.9 · 個人資產負債儀表板</div>
 
   </div>
 </div>
@@ -374,12 +385,78 @@
       <span class="nav-icon">📉</span>
       <span>負債</span>
     </button>
+    <button class="nav-btn" id="nav-goals" onclick="goTo('goals')">
+      <span class="nav-icon">🎯</span>
+      <span>Goals</span>
+    </button>
     <button class="nav-btn" id="nav-tools" onclick="goTo('tools')">
       <span class="nav-icon">🛠</span>
       <span>工具</span>
     </button>
   </div>
 </nav>
+
+<!-- ══════════════════════════════════════
+     頁面 5：Goals v1.9
+══════════════════════════════════════ -->
+<div class="page" id="page-goals">
+  <div class="page-inner">
+
+    <div class="page-header">
+      <div class="page-title">財務目標</div>
+      <div class="page-subtitle" id="goalsSubtitle">追蹤你的財務里程碑</div>
+    </div>
+
+    <!-- 目標列表 -->
+    <div id="goalsPageList"></div>
+
+    <!-- 新增按鈕 -->
+    <button class="btn-add" onclick="openGoalModal()">＋ 新增財務目標</button>
+
+    <div class="ver-badge">v1.9 · 財務目標</div>
+  </div>
+</div>
+
+<!-- ══ Modal：目標新增 / 編輯 ══ -->
+<div class="modal-overlay" id="goalOverlay" onclick="handleGoalOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="goalModalTitle">新增財務目標</div>
+      <button class="modal-close" onclick="closeGoalModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">類型</label>
+        <select class="form-select" id="gfType">
+          <option value="networth">🏠 淨資產</option>
+          <option value="cash">💰 現金</option>
+          <option value="etf">📈 股票／ETF</option>
+          <option value="deposit">🏦 定存</option>
+          <option value="emergency">🚨 緊急預備金</option>
+          <option value="custom">🎯 自訂目標</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="gfName">目標名稱</label>
+        <input class="form-input" id="gfName" type="text" placeholder="例：存到 300 萬淨資產" maxlength="30"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="gfTarget">目標金額（元）</label>
+        <input class="form-input" id="gfTarget" type="number" placeholder="例：3000000" min="0" inputmode="numeric"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="gfNote">備註（選填）</label>
+        <input class="form-input" id="gfNote" type="text" placeholder="例：2027 年前達成" maxlength="40"/>
+      </div>
+      <div class="form-error" id="gfError"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveGoal()">💾 儲存</button>
+      <button class="btn-cancel" onclick="closeGoalModal()">取消</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ Modal：新增 / 編輯（首頁用） ══ -->
 <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
