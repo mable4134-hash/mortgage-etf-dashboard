@@ -401,7 +401,91 @@ function renderHealthCard() {
   setMetric('savRatioDot', 'savRatioVal',  savRate,  'sav',  savRate  !==null ? (savRate  *100).toFixed(1)+'%' : '--');
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderCashflow();renderHealthCard();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
+/* ══════════════════════════════════════════
+   資產配置分析（v2.0）
+   僅讀取既有 nw_assets 進行統計，不新增 localStorage
+══════════════════════════════════════════ */
+const ALLOC_BAR_COLOR = {
+  cash:    'var(--green)',
+  etf:     'var(--blue)',
+  house:   'var(--purple)',
+  deposit: 'var(--orange)',
+  other:   'var(--t2)',
+};
+const ALLOC_ORDER = ['cash','etf','house','deposit','other'];
+const ALLOC_CONCENTRATION_THRESHOLD = 0.7; // 70%
+
+function renderAssetAllocation() {
+  const assets = LS.get(KEY_A);
+  const card = el('allocCard');
+  const dot  = el('allocDot');
+  if (!card) return;
+
+  const totalA = assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+
+  if (!assets.length || totalA <= 0) {
+    card.innerHTML = '<div class="overview-empty">尚未新增任何資產</div>';
+    if (dot) { dot.style.background = 'var(--tm)'; dot.style.boxShadow = 'none'; }
+    return;
+  }
+
+  // 依類型加總
+  const group = {};
+  assets.forEach(a=>{
+    const k = a.type || 'other';
+    group[k] = (group[k] || 0) + (parseFloat(a.amount) || 0);
+  });
+
+  // 依占比由高到低排序
+  const rows = ALLOC_ORDER.filter(k=>group[k]).map(k=>{
+    const t = getType('asset', k);
+    const amount = group[k];
+    const pct = amount / totalA * 100;
+    return { key:k, t, amount, pct };
+  }).sort((a,b)=>b.pct - a.pct);
+
+  if (dot) { dot.style.background = 'var(--blue)'; dot.style.boxShadow = '0 0 5px var(--blue)'; }
+
+  // 配置摘要：最大資產
+  const top = rows[0];
+  const summaryHTML = `<div class="alloc-summary">
+    <div class="alloc-summary-icon">${top.t.icon}</div>
+    <div class="alloc-summary-text">
+      <div class="alloc-summary-label">目前最大資產</div>
+      <div class="alloc-summary-value">${top.t.label}（${top.pct.toFixed(0)}%）</div>
+    </div>
+  </div>`;
+
+  // 各類資產列表
+  const listHTML = `<div class="alloc-list">${rows.map(r=>{
+    const color = ALLOC_BAR_COLOR[r.key] || 'var(--t2)';
+    return `<div class="alloc-row">
+      <div class="alloc-row-top">
+        <div class="alloc-row-left">
+          <span class="alloc-row-icon">${r.t.icon}</span>
+          <span class="alloc-row-name">${r.t.label}</span>
+        </div>
+        <div class="alloc-row-right">
+          <span class="alloc-row-amount">${fmt(r.amount)} 元</span>
+          <span class="alloc-row-pct" style="color:${color}">${r.pct.toFixed(0)}%</span>
+        </div>
+      </div>
+      <div class="alloc-bar-bg">
+        <div class="alloc-bar-fill" style="width:${r.pct}%;background:${color}"></div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+
+  // 集中度提醒（固定文字，非 AI 判斷）
+  const isConcentrated = (top.pct / 100) > ALLOC_CONCENTRATION_THRESHOLD;
+  const alertHTML = isConcentrated
+    ? `<div class="alloc-alert alloc-alert--warn">⚠️ 資產配置較集中，請留意風險。</div>`
+    : `<div class="alloc-alert alloc-alert--ok">✅ 資產配置分布正常。</div>`;
+
+  card.innerHTML = summaryHTML + '<div class="cashflow-divider"></div>' + listHTML + alertHTML;
+}
+
+function renderAll(){renderSummary();renderHomeOverview();renderCashflow();renderHealthCard();renderAssetAllocation();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
 
 /* ══════════════════════════════════════════
    Goals（v1.9）
