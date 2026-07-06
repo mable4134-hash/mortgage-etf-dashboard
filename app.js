@@ -20,6 +20,7 @@ const LS={
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},
 };
 const KEY_A='nw_assets', KEY_D='nw_debts';
+const KEY_LE='nw_living_expense';
 
 /* ══ 工具 ══ */
 function fmt(n){if(n===null||n===undefined||isNaN(n))return'--';return new Intl.NumberFormat('zh-TW').format(Math.round(n))}
@@ -244,22 +245,51 @@ function renderDebtPage(){
   }).join('');
 }
 
-/* ══ 渲染現金流卡片（v1.7） ══ */
+/* ══ 每月生活費（v2.1） ══
+   單一數字，不分類、不記帳，僅新增這一個 localStorage key */
+function getLivingExpense(){
+  const n = parseFloat(LS.get(KEY_LE, 0));
+  return isNaN(n) ? 0 : n;
+}
+
+function renderLivingExpense(){
+  const val = getLivingExpense();
+  setText('livingBannerTotal', fmt(val));
+  const input = el('livingInput');
+  // 避免使用者正在輸入時被重新渲染蓋掉
+  if(input && document.activeElement !== input){
+    input.value = val ? val : '';
+  }
+}
+
+function saveLivingExpense(){
+  const amount = parseFloat(el('livingInput').value);
+  if(isNaN(amount) || amount < 0){ showFieldErr('livingError','請輸入有效金額（≥ 0）'); return; }
+  LS.set(KEY_LE, amount);
+  clearErr('livingError');
+  renderLivingExpense();
+  renderCashflow();
+}
+
+/* ══ 渲染現金流卡片（v2.1：加入每月生活費） ══ */
 function renderCashflow(){
-  const incomeList  = LS.get(KEY_I);
-  const expenseList = LS.get(KEY_E);
-  const totalIncome  = incomeList.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
-  const totalExpense = expenseList.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
-  const disposable   = totalIncome - totalExpense;
-  const savingsRate  = totalIncome > 0 ? (disposable / totalIncome * 100) : null;
+  const incomeList   = LS.get(KEY_I);
+  const expenseList  = LS.get(KEY_E);
+  const totalIncome   = incomeList.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const totalExpense  = expenseList.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const livingExpense = getLivingExpense();
+
+  // 預估每月可存金額 ＝ 收入－固定支出－生活費
+  const disposable = totalIncome - totalExpense - livingExpense;
 
   const isPos = disposable >= 0;
   const dot   = el('cashflowDot');
   const main  = el('cfDisposable');
 
-  // 可支配金額顏色
-  if(dot)  dot.style.background = isPos ? 'var(--green)' : 'var(--red)',
-           dot.style.boxShadow  = isPos ? '0 0 5px var(--green)' : '0 0 5px var(--red)';
+  if(dot){
+    dot.style.background = isPos ? 'var(--green)' : 'var(--red)';
+    dot.style.boxShadow  = isPos ? '0 0 5px var(--green)' : '0 0 5px var(--red)';
+  }
   if(main){
     main.textContent = (isPos ? '+' : '') + fmt(Math.round(disposable));
     main.style.color = isPos ? 'var(--green)' : 'var(--red)';
@@ -268,22 +298,10 @@ function renderCashflow(){
       : '0 0 24px rgba(239,68,68,.2)';
   }
 
-  // 收入、支出、儲蓄率
-  setText('cfIncome',  totalIncome  ? fmt(totalIncome)  + ' 元' : '--');
-  setText('cfExpense', totalExpense ? fmt(totalExpense) + ' 元' : '--');
-
-  const savEl = el('cfSavings');
-  if(savEl){
-    if(savingsRate === null){
-      savEl.textContent = '--';
-      savEl.style.color = 'var(--t2)';
-    } else {
-      savEl.textContent = savingsRate.toFixed(1) + '%';
-      savEl.style.color = savingsRate >= 30
-        ? 'var(--green)' : savingsRate >= 10
-        ? 'var(--orange)' : 'var(--red)';
-    }
-  }
+  // 每月收入、固定支出、每月生活費
+  setText('cfIncome',  totalIncome    ? fmt(totalIncome)   + ' 元' : '--');
+  setText('cfExpense', totalExpense   ? fmt(totalExpense)  + ' 元' : '--');
+  setText('cfLiving',  livingExpense  ? fmt(livingExpense) + ' 元' : '--');
 }
 
 /* ══════════════════════════════════════════
@@ -485,7 +503,7 @@ function renderAssetAllocation() {
   card.innerHTML = summaryHTML + '<div class="cashflow-divider"></div>' + listHTML + alertHTML;
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderCashflow();renderHealthCard();renderAssetAllocation();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
+function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderAssetAllocation();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
 
 /* ══════════════════════════════════════════
    Goals（v1.9）
@@ -540,9 +558,15 @@ function renderGoalsPage() {
     const t       = GOAL_TYPES[g.type] || GOAL_TYPES.custom;
     const target  = parseFloat(g.target) || 0;
     const current = g.type === 'custom' ? 0 : (getCurrentByType(g.type) || 0);
-    const pct     = target > 0 ? Math.min(Math.round(current / target * 100), 100) : 0;
+    const pct     = target > 0 ? Math.max(0, Math.min(Math.round(current / target * 100), 100)) : 0;
     const color   = goalBarColor(pct);
     const canAuto = g.type !== 'custom';
+    const remain  = target - current;
+    const remainHTML = canAuto
+      ? (remain > 0
+          ? `<div class="goal-remain">還差 ${fmt(remain)} 元</div>`
+          : `<div class="goal-remain goal-remain--done">🎉 已達成目標</div>`)
+      : '';
     return `<div class="goal-card">
       <div class="goal-card-header">
         <div class="goal-card-left">
@@ -566,6 +590,7 @@ function renderGoalsPage() {
           <button class="btn-sm del" onclick="deleteGoal(${i})">✕</button>
         </div>
       </div>
+      ${remainHTML}
     </div>`;
   }).join('');
 }
@@ -583,7 +608,7 @@ function renderGoalsSummary() {
   const ranked = list.map((g, i) => {
     const target  = parseFloat(g.target) || 0;
     const current = g.type === 'custom' ? 0 : (getCurrentByType(g.type) || 0);
-    const pct     = target > 0 ? Math.min(Math.round(current / target * 100), 100) : 0;
+    const pct     = target > 0 ? Math.max(0, Math.min(Math.round(current / target * 100), 100)) : 0;
     return { g, i, pct };
   }).sort((a, b) => b.pct - a.pct).slice(0, 3);
 
@@ -649,8 +674,8 @@ function saveGoal() {
   const name   = el('gfName').value.trim();
   const target = parseFloat(el('gfTarget').value);
   const note   = el('gfNote').value.trim();
-  if (!name)                  { showErr('gfError', '請輸入目標名稱'); return; }
-  if (isNaN(target)||target<=0){ showErr('gfError', '請輸入有效目標金額（> 0）'); return; }
+  if (!name)                  { showFieldErr('gfError', '請輸入目標名稱'); return; }
+  if (isNaN(target)||target<=0){ showFieldErr('gfError', '請輸入有效目標金額（> 0）'); return; }
   const item = { type, name, target, note };
   const list = LS.get(KEY_G);
   if (_goalEditIdx >= 0) list[_goalEditIdx] = item; else list.push(item);
@@ -772,8 +797,8 @@ function saveIncome(){
   const type=el('ifType').value;
   const name=el('ifName').value.trim();
   const amount=parseFloat(el('ifAmount').value);
-  if(!name){showErr('ifError','請輸入名稱');return}
-  if(isNaN(amount)||amount<0){showErr('ifError','請輸入有效金額（≥ 0）');return}
+  if(!name){showFieldErr('ifError','請輸入名稱');return}
+  if(isNaN(amount)||amount<0){showFieldErr('ifError','請輸入有效金額（≥ 0）');return}
   const item={type,name,amount};
   const list=LS.get(KEY_I);
   if(_incomeEditIdx>=0)list[_incomeEditIdx]=item;else list.push(item);
@@ -893,8 +918,8 @@ function saveExpense(){
   const type=el('efType').value;
   const name=el('efName').value.trim();
   const amount=parseFloat(el('efAmount').value);
-  if(!name){showErr('efError','請輸入名稱');return}
-  if(isNaN(amount)||amount<0){showErr('efError','請輸入有效金額（≥ 0）');return}
+  if(!name){showFieldErr('efError','請輸入名稱');return}
+  if(isNaN(amount)||amount<0){showFieldErr('efError','請輸入有效金額（≥ 0）');return}
   const item={type,name,amount};
   const list=LS.get(KEY_E);
   if(_expenseEditIdx>=0)list[_expenseEditIdx]=item;else list.push(item);
@@ -910,7 +935,7 @@ function deleteExpense(index){
   list.splice(index,1);LS.set(KEY_E,list);renderExpensePage();
 }
 
-function showErr(id,msg){const e=el(id);if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show')}
+function showFieldErr(id,msg){const e=el(id);if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show')}
 function clearErr(id){const e=el(id);if(!e)return;e.textContent='';e.classList.remove('show')}
 
 /* ══ Modal ══ */
