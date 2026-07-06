@@ -154,16 +154,16 @@
       </div>
       <div class="cashflow-card" id="cashflowCard">
 
-        <!-- 可支配金額（大數字） -->
+        <!-- 預估每月可存金額（大數字） -->
         <div class="cashflow-main">
-          <div class="cashflow-main-label">每月可支配金額</div>
+          <div class="cashflow-main-label">💰 預估每月可存金額</div>
           <div class="cashflow-main-value" id="cfDisposable">--</div>
           <div class="cashflow-main-unit">元 / 月</div>
         </div>
 
         <div class="cashflow-divider"></div>
 
-        <!-- 三欄：收入、支出、儲蓄率 -->
+        <!-- 三欄：收入、固定支出、生活費 -->
         <div class="cashflow-stats">
           <div class="cashflow-stat">
             <div class="cashflow-stat-label">每月收入</div>
@@ -176,10 +176,12 @@
           </div>
           <div class="cashflow-stat-sep"></div>
           <div class="cashflow-stat">
-            <div class="cashflow-stat-label">儲蓄率</div>
-            <div class="cashflow-stat-value" id="cfSavings">--</div>
+            <div class="cashflow-stat-label">每月生活費</div>
+            <div class="cashflow-stat-value val--purple" id="cfLiving">--</div>
           </div>
         </div>
+
+        <div class="cashflow-note">依收入、固定支出及預估生活費估算，實際金額仍會因每月變動支出而不同。</div>
 
       </div>
     </div>
@@ -193,24 +195,6 @@
       <div id="homeGoalsSummary">
         <div class="overview-empty">尚未設定任何目標</div>
       </div>
-    </div>
-
-    <!-- 版本標記 -->
-    <div class="ver-badge">v2.0 · 個人資產負債儀表板</div>
-
-    <!-- Changelog -->
-    <div class="changelog-card">
-      <div class="changelog-header">
-        <span class="changelog-version">Version v2.0</span>
-      </div>
-      <div class="changelog-subtitle">What's New</div>
-      <ul class="changelog-list">
-        <li>新增資產配置分析</li>
-        <li>自動計算各類資產占比</li>
-        <li>新增資產集中度提醒</li>
-        <li>Dashboard 新增配置摘要</li>
-        <li>不修改既有資料結構</li>
-      </ul>
     </div>
 
   </div>
@@ -311,6 +295,27 @@
 
     <!-- 新增支出按鈕 -->
     <button class="btn-add" onclick="openExpenseModal()">＋ 新增固定支出</button>
+
+    <div style="height:16px"></div>
+
+    <!-- 每月生活費（v2.1） -->
+    <div class="living-banner">
+      <div class="summary-label">每月生活費 Living Expenses</div>
+      <div class="summary-net">
+        <span class="summary-net-value val--purple" id="livingBannerTotal">--</span>
+        <span class="summary-net-unit">元 / 月</span>
+      </div>
+      <div class="asset-banner-sub">用於估算每月可存金額（單一數字，不分類）</div>
+    </div>
+
+    <div class="living-edit-card">
+      <div class="form-group">
+        <label class="form-label" for="livingInput">每月生活費金額（元）</label>
+        <input class="form-input" id="livingInput" type="number" placeholder="例：20000" min="0" inputmode="numeric"/>
+      </div>
+      <div class="form-error" id="livingError"></div>
+      <button class="btn-save" style="width:100%;margin-top:10px" onclick="saveLivingExpense()">💾 儲存生活費</button>
+    </div>
 
     <!-- 版本標記 -->
     <div class="ver-badge">v1.8 · 每月收入 & 固定支出</div>
