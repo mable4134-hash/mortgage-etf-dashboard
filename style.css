@@ -276,3 +276,17 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 ══════════════════════════════════════ */
 .living-banner{background:linear-gradient(135deg,#1C1535 0%,#111827 100%);border:1px solid rgba(167,139,250,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
 .living-edit-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px 18px;margin-bottom:16px}
+
+/* ══════════════════════════════════════
+   開發工具（v2.3，僅開發／驗收測試用途）
+══════════════════════════════════════ */
+.dev-card{border:1px dashed rgba(249,115,22,.35);border-radius:var(--r16);overflow:hidden;margin-bottom:16px}
+.dev-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--stat);color:var(--orange);font-size:13px;font-weight:700;letter-spacing:.3px;touch-action:manipulation}
+.dev-toggle-arrow{font-size:12px;color:var(--t2);transition:transform .2s}
+.dev-body{padding:14px 16px 16px;background:var(--card);display:flex;flex-direction:column;gap:10px}
+.dev-warning{font-size:11px;color:var(--t2);line-height:1.5;background:var(--obg);border:1px solid rgba(249,115,22,.2);border-radius:var(--r8);padding:8px 10px}
+.btn-dev{width:100%;padding:12px;border-radius:var(--r12);font-size:13px;font-weight:700;touch-action:manipulation;border:1px solid var(--border)}
+.btn-dev--load{background:var(--stat);color:var(--t1)}
+.btn-dev--load:active{opacity:.85}
+.btn-dev--danger{background:var(--rbg);color:var(--red);border-color:rgba(239,68,68,.25)}
+.btn-dev--danger:active{opacity:.85}
