@@ -1052,6 +1052,89 @@ function deleteItem(mode,index){
   list.splice(index,1);LS.set(key,list);renderAll();
 }
 
+/* ══════════════════════════════════════════
+   開發工具（v2.3）
+   僅供開發／驗收測試使用，不影響一般使用者功能
+══════════════════════════════════════════ */
+
+/** 折疊區塊開關 */
+function toggleDevTools(){
+  const body  = el('devToolsBody');
+  const arrow = el('devToggleArrow');
+  if(!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
+}
+
+/** 載入測試資料：涵蓋資產／負債／收入／支出／生活費／Goals 各類型 */
+function loadTestData(){
+  if(!confirm('這會覆蓋目前的資產、負債、收入、支出、生活費與 Goals 資料，確定要載入測試資料嗎？')) return;
+
+  const testAssets = [
+    {type:'cash',    name:'第一銀行活存',       amount:150000},
+    {type:'cash',    name:'國泰世華活存',       amount:60000},
+    {type:'cash',    name:'兆豐銀行活存',       amount:40000},
+    {type:'cash',    name:'現金／零用金',       amount:15000},
+    {type:'etf',     name:'0050 元大台灣50',    amount:500000, cost:420000},
+    {type:'etf',     name:'00919 群益台灣精選高息', amount:300000, cost:280000},
+    {type:'etf',     name:'VOO',               amount:200000, cost:150000},
+    {type:'deposit', name:'一銀定存 2 年期',    amount:300000, rate:2.16},
+    {type:'deposit', name:'王道銀行定存',       amount:150000, rate:2.5},
+    {type:'house',   name:'台北市信義區房屋',   amount:12000000},
+    {type:'other',   name:'黃金存摺',           amount:50000},
+    {type:'other',   name:'虛擬貨幣',           amount:30000},
+  ];
+
+  const testDebts = [
+    {type:'mortgage', name:'玉山房貸',       amount:8000000, rate:2.1},
+    {type:'carloan',  name:'中租車貸',       amount:500000,  rate:3.5},
+    {type:'personal', name:'國泰信貸',       amount:200000,  rate:5.88},
+    {type:'credit',   name:'台新信用卡',     amount:30000},
+    {type:'credit',   name:'中國信託信用卡', amount:15000},
+  ];
+
+  const testIncome = [
+    {type:'salary',   name:'正職薪資',    amount:65000},
+    {type:'dividend', name:'0050 股息',   amount:8000},
+    {type:'rent',     name:'租金收入',    amount:15000},
+  ];
+
+  const testExpense = [
+    {type:'mortgage',  name:'玉山房貸月付', amount:28500},
+    {type:'telecom',   name:'台灣大哥大',   amount:999},
+    {type:'utility',   name:'水電瓦斯',     amount:3000},
+    {type:'insurance', name:'保險費',       amount:5000},
+  ];
+
+  const testGoals = [
+    {type:'networth',  name:'存到 500 萬淨資產',   target:5000000, note:'2028 年前達成'},
+    {type:'etf',       name:'ETF 累積到 100 萬',   target:1000000, note:''},
+    {type:'emergency', name:'緊急預備金 6 個月',   target:300000,  note:''},
+    {type:'custom',    name:'旅遊基金', target:150000, current:35000, note:'日本自由行'},
+  ];
+
+  LS.set(KEY_A, testAssets);
+  LS.set(KEY_D, testDebts);
+  LS.set(KEY_I, testIncome);
+  LS.set(KEY_E, testExpense);
+  LS.set(KEY_LE, 20000);
+  LS.set(KEY_G, testGoals);
+
+  renderAll(); // 不需重新整理，立即更新所有頁面
+}
+
+/** 清除所有資料（不影響 UI 偏好，只清本專案用到的 localStorage） */
+function clearAllData(){
+  if(!confirm('確定要清除所有資料嗎？')) return;
+
+  [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE].forEach(k=>{
+    try{ localStorage.removeItem(k); }catch{}
+  });
+
+  renderAll();
+}
+
 /* ══ 初始化 ══ */
 function init(){
   const now=new Date();
