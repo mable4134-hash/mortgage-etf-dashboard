@@ -317,6 +317,21 @@
       <button class="btn-save" style="width:100%;margin-top:10px" onclick="saveLivingExpense()">💾 儲存生活費</button>
     </div>
 
+    <div style="height:16px"></div>
+
+    <!-- 開發工具（v2.3，僅開發／驗收測試用途） -->
+    <div class="dev-card">
+      <button class="dev-toggle" onclick="toggleDevTools()">
+        <span>🧪 開發工具（Developer Tools）</span>
+        <span class="dev-toggle-arrow" id="devToggleArrow">▾</span>
+      </button>
+      <div class="dev-body" id="devToolsBody" style="display:none">
+        <div class="dev-warning">⚠️ 僅供開發／驗收測試使用，會覆蓋或清除目前資料，一般使用情境請勿使用。</div>
+        <button class="btn-dev btn-dev--load" onclick="loadTestData()">📦 載入測試資料</button>
+        <button class="btn-dev btn-dev--danger" onclick="clearAllData()">🗑️ 清除所有資料</button>
+      </div>
+    </div>
+
     <!-- 版本標記 -->
     <div class="ver-badge">v1.8 · 每月收入 & 固定支出</div>
 
@@ -531,4 +546,10 @@
     </div>
     <div class="modal-actions">
       <button class="btn-save" onclick="saveItem()">💾 儲存</button>
-      <button class="btn-cancel" onclick="cl
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
