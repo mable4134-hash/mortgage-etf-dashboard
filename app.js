@@ -512,29 +512,42 @@ const KEY_G = 'nw_goals';
 
 const GOAL_TYPES = {
   networth:  { label:'淨資產',      icon:'🏠', cls:'icon--house'   },
-  cash:      { label:'現金',         icon:'💰', cls:'icon--cash'    },
+  cash:      { label:'現金／活存',   icon:'💰', cls:'icon--cash'    },
   etf:       { label:'股票／ETF',    icon:'📈', cls:'icon--etf'     },
   deposit:   { label:'定存',         icon:'🏦', cls:'icon--deposit' },
   emergency: { label:'緊急預備金',   icon:'🚨', cls:'icon--other'   },
-  custom:    { label:'自訂目標',     icon:'🎯', cls:'icon--cash'    },
+  custom:    { label:'自訂',         icon:'🎯', cls:'icon--cash'    },
 };
 
 /**
  * 依目標類型自動讀取目前金額
  * 讀取現有 localStorage，不新增任何 key
+ * custom（自訂目標）不自動計算，回傳 null，由使用者自行輸入
  */
 function getCurrentByType(type) {
   const assets  = LS.get(KEY_A);
   const debts   = LS.get(KEY_D);
   const totalA  = assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
   const totalD  = debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  const cashTotal    = assets.filter(a=>a.type==='cash').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  const depositTotal = assets.filter(a=>a.type==='deposit').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
 
   if (type === 'networth')  return totalA - totalD;
-  if (type === 'cash')      return assets.filter(a=>a.type==='cash').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  if (type === 'cash')      return cashTotal;
   if (type === 'etf')       return assets.filter(a=>a.type==='etf').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
-  if (type === 'deposit')   return assets.filter(a=>a.type==='deposit').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
-  if (type === 'emergency') return assets.filter(a=>a.type==='cash').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
-  return null; // custom：無法自動對應
+  if (type === 'deposit')   return depositTotal;
+  if (type === 'emergency') return cashTotal + depositTotal;
+  return null; // custom：不自動計算，由使用者輸入
+}
+
+/**
+ * 取得目標的「目前金額」
+ * - 自動類型：呼叫 getCurrentByType() 計算
+ * - 自訂目標（custom）：直接讀取使用者輸入的 g.current，不引用任何自動計算值
+ */
+function getGoalCurrent(g) {
+  if (g.type === 'custom') return parseFloat(g.current) || 0;
+  return getCurrentByType(g.type) || 0;
 }
 
 /** 進度條顏色 */
@@ -557,16 +570,13 @@ function renderGoalsPage() {
   c.innerHTML = list.map((g, i) => {
     const t       = GOAL_TYPES[g.type] || GOAL_TYPES.custom;
     const target  = parseFloat(g.target) || 0;
-    const current = g.type === 'custom' ? 0 : (getCurrentByType(g.type) || 0);
+    const current = getGoalCurrent(g);
     const pct     = target > 0 ? Math.max(0, Math.min(Math.round(current / target * 100), 100)) : 0;
     const color   = goalBarColor(pct);
-    const canAuto = g.type !== 'custom';
     const remain  = target - current;
-    const remainHTML = canAuto
-      ? (remain > 0
-          ? `<div class="goal-remain">還差 ${fmt(remain)} 元</div>`
-          : `<div class="goal-remain goal-remain--done">🎉 已達成目標</div>`)
-      : '';
+    const remainHTML = remain > 0
+      ? `<div class="goal-remain">還差 ${fmt(remain)} 元</div>`
+      : `<div class="goal-remain goal-remain--done">🎉 已達成目標</div>`;
     return `<div class="goal-card">
       <div class="goal-card-header">
         <div class="goal-card-left">
@@ -583,7 +593,7 @@ function renderGoalsPage() {
       </div>
       <div class="goal-card-footer">
         <div class="goal-amounts">
-          ${canAuto ? `目前 ${fmt(Math.round(current))} 元 ／ ` : ''}目標 ${fmt(target)} 元
+          ${fmt(Math.round(current))} / ${fmt(target)} 元
         </div>
         <div class="goal-actions">
           <button class="btn-sm" onclick="editGoal(${i})">✎</button>
@@ -607,7 +617,7 @@ function renderGoalsSummary() {
   // 計算各目標完成率並排序
   const ranked = list.map((g, i) => {
     const target  = parseFloat(g.target) || 0;
-    const current = g.type === 'custom' ? 0 : (getCurrentByType(g.type) || 0);
+    const current = getGoalCurrent(g);
     const pct     = target > 0 ? Math.max(0, Math.min(Math.round(current / target * 100), 100)) : 0;
     return { g, i, pct };
   }).sort((a, b) => b.pct - a.pct).slice(0, 3);
@@ -635,11 +645,13 @@ let _goalEditIdx = -1;
 
 function openGoalModal() {
   _goalEditIdx = -1;
-  el('gfType').value  = 'networth';
-  el('gfName').value  = '';
-  el('gfTarget').value= '';
-  el('gfNote').value  = '';
+  el('gfType').value   = 'networth';
+  el('gfName').value   = '';
+  el('gfTarget').value = '';
+  el('gfCurrent').value= '';
+  el('gfNote').value   = '';
   clearErr('gfError');
+  onGoalTypeChange();
   setText('goalModalTitle', '新增財務目標');
   el('goalOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -653,8 +665,10 @@ function editGoal(index) {
   el('gfType').value   = item.type   || 'networth';
   el('gfName').value   = item.name   || '';
   el('gfTarget').value = item.target || '';
+  el('gfCurrent').value= item.type === 'custom' ? (item.current || '') : '';
   el('gfNote').value   = item.note   || '';
   clearErr('gfError');
+  onGoalTypeChange();
   setText('goalModalTitle', '編輯財務目標');
   el('goalOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -669,6 +683,15 @@ function handleGoalOverlayClick(e) {
   if (e.target === el('goalOverlay')) closeGoalModal();
 }
 
+/** 依目標類型切換「目前金額」欄位的顯示／隱藏 */
+function onGoalTypeChange() {
+  const isCustom = el('gfType').value === 'custom';
+  const group = el('gfCurrentGroup');
+  const note  = el('gfAutoNote');
+  if (group) group.style.display = isCustom ? 'flex' : 'none';
+  if (note)  note.style.display  = isCustom ? 'none' : 'block';
+}
+
 function saveGoal() {
   const type   = el('gfType').value;
   const name   = el('gfName').value.trim();
@@ -676,7 +699,15 @@ function saveGoal() {
   const note   = el('gfNote').value.trim();
   if (!name)                  { showFieldErr('gfError', '請輸入目標名稱'); return; }
   if (isNaN(target)||target<=0){ showFieldErr('gfError', '請輸入有效目標金額（> 0）'); return; }
+
   const item = { type, name, target, note };
+
+  if (type === 'custom') {
+    const current = parseFloat(el('gfCurrent').value);
+    if (isNaN(current) || current < 0) { showFieldErr('gfError', '請輸入有效目前金額（≥ 0）'); return; }
+    item.current = current;
+  }
+
   const list = LS.get(KEY_G);
   if (_goalEditIdx >= 0) list[_goalEditIdx] = item; else list.push(item);
   LS.set(KEY_G, list);
