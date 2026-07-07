@@ -13,6 +13,10 @@ const DEBT_TYPES=[
   {value:'credit',  label:'信用卡',   icon:'💰', cls:'icon--credit'},
   {value:'other',   label:'其他負債', icon:'📋', cls:'icon--debt-other'},
 ];
+/* 貸款類負債（v2.4）：這三種類型才會有本息攤還相關欄位與貸款資訊卡
+   之後 v2.5 的攤還方式／提前還款／利息分析都會以此清單為基礎擴充，
+   不要在其他地方寫死這三個字串，一律引用 LOAN_TYPES */
+const LOAN_TYPES=['mortgage','carloan','personal'];
 
 /* ══ localStorage ══ */
 const LS={
@@ -80,11 +84,14 @@ function itemHTML(item,mode,index){
   const rate=hasReturn?profit/cost:null;
   const pctStr=hasReturn?fmtPct(rate):null;
   const pColor=profit!==null&&profit>=0?'var(--green)':'var(--red)';
+  const isLoan=mode==='debt'&&LOAN_TYPES.includes(item.type);
   const meta=[];
   if(item.note)meta.push(esc(item.note));
   if(hasReturn)meta.push('成本 '+fmt(cost)+' 元');
-  if(item.rate&&mode==='debt')meta.push('年利率 '+parseFloat(item.rate).toFixed(2)+'%');
-  return`<div class="item-card fade-in">
+  // 貸款類負債的年利率已經在下方貸款資訊卡顯示，這裡不重複列出
+  if(item.rate&&mode==='debt'&&!isLoan)meta.push('年利率 '+parseFloat(item.rate).toFixed(2)+'%');
+
+  const topRow=`<div class="item-card-top">
     <div class="item-icon ${t.cls}">${t.icon}</div>
     <div class="item-body">
       <div class="item-name">${esc(item.name)||t.label}</div>
@@ -99,6 +106,40 @@ function itemHTML(item,mode,index){
       <button class="btn-sm del" onclick="deleteItem('${mode}',${index})">✕</button>
     </div>
   </div>`;
+
+  if(!isLoan){
+    return `<div class="item-card fade-in">${topRow}</div>`;
+  }
+
+  // ══ 貸款資訊卡（v2.4）：房貸／車貸／信貸才會顯示 ══
+  const loanRate = parseFloat(item.rate);
+  const monthlyPayment = parseFloat(item.monthlyPayment);
+  const remainingMonths = parseInt(item.remainingMonths, 10);
+  const hasRemaining = !isNaN(remainingMonths);
+
+  const loanDetail = `<div class="loan-detail">
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">剩餘本金</div>
+      <div class="loan-detail-value">${fmt(amt)} 元</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">年利率</div>
+      <div class="loan-detail-value">${!isNaN(loanRate)?loanRate.toFixed(2)+'%':'--'}</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">每月應繳</div>
+      <div class="loan-detail-value">${!isNaN(monthlyPayment)?fmt(monthlyPayment)+' 元':'--'}</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">剩餘期數</div>
+      <div class="loan-detail-value">${hasRemaining?remainingMonths+' 期':'--'}</div>
+    </div>
+  </div>
+  <button class="loan-pay-btn" onclick="payLoanMonth(${index})" ${hasRemaining&&remainingMonths<=0?'disabled':''}>
+    ${hasRemaining&&remainingMonths<=0?'🎉 已繳清期數':'✅ 本月已還款'}
+  </button>`;
+
+  return `<div class="item-card item-card--loan fade-in">${topRow}${loanDetail}</div>`;
 }
 
 /* ══ 渲染首頁概況（v1.4） ══ */
@@ -215,6 +256,12 @@ function renderDebtPage(){
   setText('debtBannerTotal',fmt(total));
   setText('debtBannerSub',debts.length+' 筆負債');
 
+  // 每月貸款支出（v2.4）：房貸＋車貸＋信貸，信用卡與其他負債不列入
+  const loanMonthlyTotal = debts
+    .filter(d=>LOAN_TYPES.includes(d.type))
+    .reduce((s,d)=>s+(parseFloat(d.monthlyPayment)||0),0);
+  setText('loanMonthlyTotal', loanMonthlyTotal ? fmt(loanMonthlyTotal) : '--');
+
   const c=el('debtPageList');
   if(!c)return;
   if(!debts.length){
@@ -243,6 +290,22 @@ function renderDebtPage(){
       ${items.map(d=>itemHTML(d,'debt',d._idx)).join('')}
     </div>`;
   }).join('');
+}
+
+/** 本月已還款（v2.4）：僅扣除一個月期數，不動任何本金／攤還計算
+ *  這裡刻意保持單純，v2.5 會在此基礎上加入本息／本金攤還與提前還款邏輯 */
+function payLoanMonth(index){
+  const list = LS.get(KEY_D);
+  const item = list[index];
+  if(!item) return;
+  const current = parseInt(item.remainingMonths, 10);
+  if(isNaN(current) || current <= 0){
+    alert('尚未設定剩餘期數，或期數已還清');
+    return;
+  }
+  item.remainingMonths = current - 1;
+  LS.set(KEY_D, list);
+  renderDebtPage();
 }
 
 /* ══ 每月生活費（v2.1） ══
@@ -993,6 +1056,8 @@ function editItem(mode,index){
   el('fCost').value=item.cost||'';
   el('fRate').value=item.rate||'';
   el('fNote').value=item.note||'';
+  el('fMonthly').value=item.monthlyPayment||'';
+  el('fRemaining').value=item.remainingMonths||'';
   onTypeChange();
   el('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -1013,12 +1078,17 @@ function buildSelect(mode){
 }
 function onTypeChange(){
   const v=el('fType').value;
+  const isLoanType = _mode==='debt' && LOAN_TYPES.includes(v);
   el('fCostGroup').style.display=v==='etf'?'flex':'none';
   el('fRateGroup').style.display=['mortgage','carloan','personal','credit'].includes(v)?'flex':'none';
+  el('fMonthlyGroup').style.display=isLoanType?'flex':'none';
+  el('fRemainingGroup').style.display=isLoanType?'flex':'none';
+  const amountLabel=el('fAmountLabel');
+  if(amountLabel)amountLabel.textContent=isLoanType?'剩餘本金（元）':'金額（元）';
   el('fName').placeholder=NAME_PH[v]||'請輸入名稱';
 }
 function clearForm(){
-  ['fName','fAmount','fCost','fRate','fNote'].forEach(id=>{const e=el(id);if(e)e.value=''});
+  ['fName','fAmount','fCost','fRate','fNote','fMonthly','fRemaining'].forEach(id=>{const e=el(id);if(e)e.value=''});
   const fe=el('fError');if(fe){fe.textContent='';fe.classList.remove('show')}
 }
 function showErr(msg){const e=el('fError');if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show')}
@@ -1030,13 +1100,22 @@ function saveItem(){
   const cost=parseFloat(el('fCost').value);
   const rate=parseFloat(el('fRate').value);
   const note=el('fNote').value.trim();
+  const monthlyPayment=parseFloat(el('fMonthly').value);
+  const remainingMonths=parseInt(el('fRemaining').value,10);
   if(!name){showErr('請輸入名稱');return}
   if(isNaN(amount)||amount<0){showErr('請輸入有效金額（≥ 0）');return}
   if(!isNaN(rate)&&(rate<0||rate>50)){showErr('利率請輸入合理範圍');return}
+  const isLoanType = _mode==='debt' && LOAN_TYPES.includes(type);
+  if(isLoanType && !isNaN(monthlyPayment) && monthlyPayment<0){showErr('每月應繳金額請輸入有效數字（≥ 0）');return}
+  if(isLoanType && !isNaN(remainingMonths) && remainingMonths<0){showErr('剩餘期數請輸入有效數字（≥ 0）');return}
   const item={type,name,amount};
   if(!isNaN(cost)&&cost>=0)item.cost=cost;
   if(!isNaN(rate)&&rate>=0)item.rate=rate;
   if(note)item.note=note;
+  if(isLoanType){
+    if(!isNaN(monthlyPayment)&&monthlyPayment>=0)item.monthlyPayment=monthlyPayment;
+    if(!isNaN(remainingMonths)&&remainingMonths>=0)item.remainingMonths=remainingMonths;
+  }
   const key=_mode==='asset'?KEY_A:KEY_D;
   const list=LS.get(key);
   if(_editIdx>=0)list[_editIdx]=item;else list.push(item);
