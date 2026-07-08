@@ -13,10 +13,185 @@ const DEBT_TYPES=[
   {value:'credit',  label:'信用卡',   icon:'💰', cls:'icon--credit'},
   {value:'other',   label:'其他負債', icon:'📋', cls:'icon--debt-other'},
 ];
-/* 貸款類負債（v2.4）：這三種類型才會有本息攤還相關欄位與貸款資訊卡
-   之後 v2.5 的攤還方式／提前還款／利息分析都會以此清單為基礎擴充，
-   不要在其他地方寫死這三個字串，一律引用 LOAN_TYPES */
+/* 貸款類負債：這三種類型會有貸款資訊卡
+   - 房貸（mortgage）：v3.0 起改用 Mortgage Engine 完整攤還計算（見下方區塊）
+   - 車貸／信貸（carloan／personal）：維持 v2.4 的簡易模式（手動維護每月應繳／剩餘期數）
+   之後若車貸／信貸要比照房貸升級完整攤還功能，直接沿用 Mortgage Engine 架構即可，
+   不要在其他地方寫死這幾個字串，一律引用 LOAN_TYPES／SIMPLE_LOAN_TYPES */
 const LOAN_TYPES=['mortgage','carloan','personal'];
+const SIMPLE_LOAN_TYPES=['carloan','personal'];
+
+/* ══════════════════════════════════════════
+   Mortgage Engine（v3.0）
+   房貸攤還計算獨立封裝於此，未來車貸／信貸若需完整攤還功能可直接沿用。
+   計算基礎：月利率 = 年利率 ÷ 12；計算過程不中途四捨五入，只在畫面顯示時四捨五入至整數元。
+══════════════════════════════════════════ */
+const REPAY_METHOD_LABEL = { equalPayment:'本息平均攤還', equalPrincipal:'本金平均攤還' };
+
+/**
+ * 建立完整攤還排程（每期本金／利息／應繳金額／期末剩餘本金）
+ * 支援「本息平均攤還」與「本金平均攤還」兩種正式銀行公式，非簡化估算。
+ */
+function buildAmortizationSchedule(originalAmount, annualRatePct, totalMonths, method){
+  const P = parseFloat(originalAmount) || 0;
+  const n = parseInt(totalMonths, 10) || 0;
+  const r = (parseFloat(annualRatePct) || 0) / 100 / 12; // 月利率
+  const schedule = [];
+  if (P <= 0 || n <= 0) return schedule;
+
+  if (method === 'equalPrincipal') {
+    // 本金平均攤還（等額本金）：每期本金固定，利息隨剩餘本金遞減
+    const principalPortion = P / n;
+    let remaining = P;
+    for (let i = 0; i < n; i++) {
+      const interestPortion = remaining * r;
+      const actualPrincipal = Math.min(principalPortion, remaining);
+      remaining = Math.max(0, remaining - actualPrincipal);
+      schedule.push({ payment: actualPrincipal + interestPortion, principalPortion: actualPrincipal, interestPortion, remaining });
+    }
+  } else {
+    // 本息平均攤還（等額本息）：M = P × r × (1+r)^n ÷ ((1+r)^n − 1)
+    const factor = Math.pow(1 + r, n);
+    const M = r === 0 ? P / n : P * r * factor / (factor - 1);
+    let remaining = P;
+    for (let i = 0; i < n; i++) {
+      const interestPortion = remaining * r;
+      let principalPortion = M - interestPortion;
+      if (i === n - 1) principalPortion = remaining; // 最後一期修正尾差，避免累積誤差
+      principalPortion = Math.max(0, Math.min(principalPortion, remaining));
+      remaining = Math.max(0, remaining - principalPortion);
+      schedule.push({ payment: principalPortion + interestPortion, principalPortion, interestPortion, remaining });
+    }
+  }
+  return schedule;
+}
+
+/** 計算起貸日至今的完整月數（未滿一個月不計入），用來推算已還期數 */
+function monthsBetween(startDate, endDate){
+  if (!startDate) return 0;
+  const start = new Date(startDate);
+  const end = endDate || new Date();
+  if (isNaN(start.getTime())) return 0;
+  let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  if (end.getDate() < start.getDate()) months -= 1;
+  return Math.max(0, months);
+}
+
+/**
+ * Mortgage Engine 主入口：依貸款條件計算完整房貸現況
+ * @param {object} loan - { originalAmount, currentPrincipal, rate, totalMonths, startDate, repaymentMethod }
+ * 回傳：每月應繳金額／已還期數／剩餺期數／已還本金／已付利息／還款進度(%) 等
+ */
+function mortgageEngine(loan){
+  const originalAmount = parseFloat(loan.originalAmount) || 0;
+  const currentPrincipal = parseFloat(loan.currentPrincipal);
+  const totalMonths = parseInt(loan.totalMonths, 10) || 0;
+  const method = loan.repaymentMethod === 'equalPrincipal' ? 'equalPrincipal' : 'equalPayment';
+
+  const schedule = buildAmortizationSchedule(originalAmount, loan.rate, totalMonths, method);
+  const hasSchedule = schedule.length > 0;
+
+  const paidMonths = hasSchedule ? Math.min(monthsBetween(loan.startDate), totalMonths) : 0;
+  const remainingMonths = hasSchedule ? Math.max(0, totalMonths - paidMonths) : 0;
+
+  const currentPeriod = hasSchedule
+    ? (schedule[Math.min(paidMonths, totalMonths - 1)] || schedule[schedule.length - 1])
+    : null;
+  const monthlyPayment = currentPeriod ? currentPeriod.payment : 0;
+
+  // 剩餺本金以使用者維護的欄位為準（可手動修正，會與理論排程略有落差，屬正常情況）
+  const scheduleRemaining = hasSchedule ? (schedule[Math.max(0, paidMonths - 1)]?.remaining ?? originalAmount) : originalAmount;
+  const remainingPrincipal = !isNaN(currentPrincipal) ? currentPrincipal : scheduleRemaining;
+  const paidPrincipal = Math.max(0, originalAmount - remainingPrincipal);
+
+  // 已付利息：採理論攤還排程中，累積到「已還期數」的利息加總
+  const paidInterest = hasSchedule
+    ? schedule.slice(0, paidMonths).reduce((s, p) => s + p.interestPortion, 0)
+    : 0;
+
+  const progressPct = totalMonths > 0 ? Math.max(0, Math.min(100, Math.round(paidMonths / totalMonths * 100))) : 0;
+
+  return {
+    originalAmount, remainingPrincipal, paidPrincipal, paidInterest,
+    monthlyPayment, paidMonths, remainingMonths, totalMonths, progressPct, schedule,
+  };
+}
+
+/**
+ * 依固定月付金／固定本金逐期試算，直到還清或超過安全上限為止
+ * method==='equalPrincipal' 時 fixedParam 為每期固定本金，否則為固定月付金
+ */
+function simulatePayoff(principal, monthlyRate, method, fixedParam, capMonths){
+  let remaining = principal;
+  let totalInterest = 0;
+  let months = 0;
+  const hardCap = Math.max((capMonths || 0) * 2, 1200); // 防止極端參數造成無窮迴圈
+  while (remaining > 0.5 && months < hardCap) {
+    const interest = remaining * monthlyRate;
+    let principalPortion;
+    if (method === 'equalPrincipal') {
+      principalPortion = Math.min(fixedParam, remaining);
+    } else {
+      principalPortion = fixedParam - interest;
+      if (principalPortion <= 0) return { months: Infinity, totalInterest: Infinity, payoff: false };
+      principalPortion = Math.min(principalPortion, remaining);
+    }
+    totalInterest += interest;
+    remaining -= principalPortion;
+    months++;
+  }
+  return { months, totalInterest, payoff: remaining <= 0.5 };
+}
+
+/**
+ * 提前還款試算（v3.0）：僅試算，不修改任何原始資料
+ * 情境：現在立刻多繳一筆金額直接沖抵本金，之後仍按原本的月付金／攤還方式走完剩餘期數，
+ * 比較「有提前還款」與「沒有提前還款」兩種情境的總利息與總期數差異。
+ */
+function mortgagePrepaymentSimulation(loan, prepayAmount){
+  const engine = mortgageEngine(loan);
+  const extra = parseFloat(prepayAmount) || 0;
+  if (extra <= 0 || engine.remainingMonths <= 0 || engine.remainingPrincipal <= 0) {
+    return { valid: false, interestSaved: 0, monthsSaved: 0 };
+  }
+  const r = (parseFloat(loan.rate) || 0) / 100 / 12;
+  const method = loan.repaymentMethod === 'equalPrincipal' ? 'equalPrincipal' : 'equalPayment';
+  const fixedParam = method === 'equalPrincipal'
+    ? (parseFloat(loan.originalAmount) || 0) / (parseInt(loan.totalMonths, 10) || 1)
+    : engine.monthlyPayment;
+
+  const original = simulatePayoff(engine.remainingPrincipal, r, method, fixedParam, engine.remainingMonths);
+  const newPrincipal = Math.max(0, engine.remainingPrincipal - extra);
+  const withPrepay = simulatePayoff(newPrincipal, r, method, fixedParam, engine.remainingMonths);
+
+  if (!original.payoff || !withPrepay.payoff) {
+    return { valid: false, interestSaved: 0, monthsSaved: 0 };
+  }
+
+  return {
+    valid: true,
+    interestSaved: Math.max(0, original.totalInterest - withPrepay.totalInterest),
+    monthsSaved: Math.max(0, original.months - withPrepay.months),
+  };
+}
+
+/** 判斷這筆房貸是否已填妥完整條件，足以啟用 Mortgage Engine 自動試算 */
+function isMortgageReady(item){
+  return !isNaN(parseFloat(item.originalAmount)) && parseFloat(item.originalAmount) > 0
+    && !isNaN(parseInt(item.totalMonths, 10)) && parseInt(item.totalMonths, 10) > 0
+    && !!item.startDate;
+}
+/** 將負債資料轉成 Mortgage Engine 所需的輸入格式 */
+function getMortgageLoanInput(item){
+  return {
+    originalAmount: item.originalAmount,
+    currentPrincipal: item.amount,
+    rate: item.rate,
+    totalMonths: item.totalMonths,
+    startDate: item.startDate,
+    repaymentMethod: item.repaymentMethod,
+  };
+}
 
 /* ══ localStorage ══ */
 const LS={
@@ -81,10 +256,12 @@ function itemHTML(item,mode,index){
   const cost=parseFloat(item.cost);
   const hasReturn=item.type==='etf'&&!isNaN(cost)&&cost>0;
   const profit=hasReturn?amt-cost:null;
-  const rate=hasReturn?profit/cost:null;
-  const pctStr=hasReturn?fmtPct(rate):null;
+  const rateReturn=hasReturn?profit/cost:null;
+  const pctStr=hasReturn?fmtPct(rateReturn):null;
   const pColor=profit!==null&&profit>=0?'var(--green)':'var(--red)';
-  const isLoan=mode==='debt'&&LOAN_TYPES.includes(item.type);
+  const isMortgage=mode==='debt'&&item.type==='mortgage';
+  const isSimpleLoan=mode==='debt'&&SIMPLE_LOAN_TYPES.includes(item.type);
+  const isLoan=isMortgage||isSimpleLoan;
   const meta=[];
   if(item.note)meta.push(esc(item.note));
   if(hasReturn)meta.push('成本 '+fmt(cost)+' 元');
@@ -111,35 +288,132 @@ function itemHTML(item,mode,index){
     return `<div class="item-card fade-in">${topRow}</div>`;
   }
 
-  // ══ 貸款資訊卡（v2.4）：房貸／車貸／信貸才會顯示 ══
-  const loanRate = parseFloat(item.rate);
-  const monthlyPayment = parseFloat(item.monthlyPayment);
-  const remainingMonths = parseInt(item.remainingMonths, 10);
-  const hasRemaining = !isNaN(remainingMonths);
+  if(isSimpleLoan){
+    // ══ 車貸／信貸：維持 v2.4 簡易貸款資訊卡（手動維護每月應繳／剩餘期數） ══
+    const loanRate = parseFloat(item.rate);
+    const monthlyPayment = parseFloat(item.monthlyPayment);
+    const remainingMonths = parseInt(item.remainingMonths, 10);
+    const hasRemaining = !isNaN(remainingMonths);
 
-  const loanDetail = `<div class="loan-detail">
+    const loanDetail = `<div class="loan-detail">
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">剩餘本金</div>
+        <div class="loan-detail-value">${fmt(amt)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">年利率</div>
+        <div class="loan-detail-value">${!isNaN(loanRate)?loanRate.toFixed(2)+'%':'--'}</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">每月應繳</div>
+        <div class="loan-detail-value">${!isNaN(monthlyPayment)?fmt(monthlyPayment)+' 元':'--'}</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">剩餘期數</div>
+        <div class="loan-detail-value">${hasRemaining?remainingMonths+' 期':'--'}</div>
+      </div>
+    </div>
+    <button class="loan-pay-btn" onclick="payLoanMonth(${index})" ${hasRemaining&&remainingMonths<=0?'disabled':''}>
+      ${hasRemaining&&remainingMonths<=0?'🎉 已繳清期數':'✅ 本月已還款'}
+    </button>`;
+
+    return `<div class="item-card item-card--loan fade-in">${topRow}${loanDetail}</div>`;
+  }
+
+  // ══ 房貸（v3.0 Mortgage Engine） ══
+  if(!isMortgageReady(item)){
+    const loanRate = parseFloat(item.rate);
+    return `<div class="item-card item-card--loan fade-in">${topRow}
+      <div class="loan-detail">
+        <div class="loan-detail-item">
+          <div class="loan-detail-label">剩餘本金</div>
+          <div class="loan-detail-value">${fmt(amt)} 元</div>
+        </div>
+        <div class="loan-detail-item">
+          <div class="loan-detail-label">年利率</div>
+          <div class="loan-detail-value">${!isNaN(loanRate)?loanRate.toFixed(2)+'%':'--'}</div>
+        </div>
+      </div>
+      <div class="mortgage-incomplete-hint">📝 補齊「原始貸款金額」「貸款總期數」「起貸日期」「還款方式」後，即可自動試算每月應繳、已還本金、已付利息與提前還款效果。</div>
+    </div>`;
+  }
+
+  const r = mortgageEngine(getMortgageLoanInput(item));
+  const methodLabel = REPAY_METHOD_LABEL[item.repaymentMethod] || REPAY_METHOD_LABEL.equalPayment;
+
+  const mortgageDetail = `<div class="loan-detail">
     <div class="loan-detail-item">
-      <div class="loan-detail-label">剩餘本金</div>
-      <div class="loan-detail-value">${fmt(amt)} 元</div>
+      <div class="loan-detail-label">🏠 原始貸款金額</div>
+      <div class="loan-detail-value">${fmt(r.originalAmount)} 元</div>
     </div>
     <div class="loan-detail-item">
-      <div class="loan-detail-label">年利率</div>
-      <div class="loan-detail-value">${!isNaN(loanRate)?loanRate.toFixed(2)+'%':'--'}</div>
+      <div class="loan-detail-label">💰 剩餘本金</div>
+      <div class="loan-detail-value">${fmt(r.remainingPrincipal)} 元</div>
     </div>
     <div class="loan-detail-item">
-      <div class="loan-detail-label">每月應繳</div>
-      <div class="loan-detail-value">${!isNaN(monthlyPayment)?fmt(monthlyPayment)+' 元':'--'}</div>
+      <div class="loan-detail-label">📉 已還本金</div>
+      <div class="loan-detail-value">${fmt(r.paidPrincipal)} 元</div>
     </div>
     <div class="loan-detail-item">
-      <div class="loan-detail-label">剩餘期數</div>
-      <div class="loan-detail-value">${hasRemaining?remainingMonths+' 期':'--'}</div>
+      <div class="loan-detail-label">💵 已付利息</div>
+      <div class="loan-detail-value">${fmt(r.paidInterest)} 元</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">📅 每月應繳金額</div>
+      <div class="loan-detail-value">${fmt(r.monthlyPayment)} 元</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">📆 已還期數</div>
+      <div class="loan-detail-value">${r.paidMonths} / ${r.totalMonths} 期</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">📈 年利率</div>
+      <div class="loan-detail-value">${(parseFloat(item.rate)||0).toFixed(2)}%</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">還款方式</div>
+      <div class="loan-detail-value">${methodLabel}</div>
     </div>
   </div>
-  <button class="loan-pay-btn" onclick="payLoanMonth(${index})" ${hasRemaining&&remainingMonths<=0?'disabled':''}>
-    ${hasRemaining&&remainingMonths<=0?'🎉 已繳清期數':'✅ 本月已還款'}
-  </button>`;
+  <div class="mortgage-progress">
+    <div class="mortgage-progress-label"><span>📊 還款進度</span><span>${r.progressPct}%</span></div>
+    <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${r.progressPct}%;background:var(--purple)"></div></div>
+  </div>
+  <div class="mortgage-prepay">
+    <div class="mortgage-prepay-title">💡 提前還款試算</div>
+    <div class="mortgage-prepay-row">
+      <input class="form-input" id="prepayInput_${index}" type="number" placeholder="例：200000" min="0" inputmode="numeric"/>
+      <button class="btn-sm-action" onclick="simulatePrepay(${index})">試算</button>
+    </div>
+    <div class="mortgage-prepay-result" id="prepayResult_${index}"></div>
+    <div class="mortgage-prepay-hint">⚠️ 僅供試算，不會修改任何原始資料。</div>
+  </div>`;
 
-  return `<div class="item-card item-card--loan fade-in">${topRow}${loanDetail}</div>`;
+  return `<div class="item-card item-card--loan item-card--mortgage fade-in">${topRow}${mortgageDetail}</div>`;
+}
+
+/** 提前還款試算按鈕：讀取輸入金額，呼叫 Mortgage Engine 試算並顯示結果（v3.0） */
+function simulatePrepay(index){
+  const list = LS.get(KEY_D);
+  const item = list[index];
+  if(!item) return;
+  const inputEl = el('prepayInput_'+index);
+  const resultEl = el('prepayResult_'+index);
+  if(!inputEl || !resultEl) return;
+  const extra = parseFloat(inputEl.value);
+  if(isNaN(extra) || extra <= 0){
+    resultEl.innerHTML = '<div class="mortgage-prepay-error">請輸入有效的提前還款金額（大於 0）</div>';
+    return;
+  }
+  const sim = mortgagePrepaymentSimulation(getMortgageLoanInput(item), extra);
+  if(!sim.valid){
+    resultEl.innerHTML = '<div class="mortgage-prepay-error">目前貸款條件無法試算，請確認原始貸款金額、總期數、年利率、起貸日期是否都已填寫。</div>';
+    return;
+  }
+  resultEl.innerHTML = `
+    <div class="mortgage-prepay-stat"><span>預估可節省利息</span><span class="val--green">${fmt(sim.interestSaved)} 元</span></div>
+    <div class="mortgage-prepay-stat"><span>預估可縮短期數</span><span class="val--green">${sim.monthsSaved} 期</span></div>
+  `;
 }
 
 /* ══ 渲染首頁概況（v1.4） ══ */
@@ -256,10 +530,12 @@ function renderDebtPage(){
   setText('debtBannerTotal',fmt(total));
   setText('debtBannerSub',debts.length+' 筆負債');
 
-  // 每月貸款支出（v2.4）：房貸＋車貸＋信貸，信用卡與其他負債不列入
-  const loanMonthlyTotal = debts
-    .filter(d=>LOAN_TYPES.includes(d.type))
-    .reduce((s,d)=>s+(parseFloat(d.monthlyPayment)||0),0);
+  // 每月貸款支出（v3.0）：房貸（Mortgage Engine 自動計算）＋車貸＋信貸（手動維護），信用卡與其他負債不列入
+  const loanMonthlyTotal = debts.reduce((s,d)=>{
+    if(d.type==='mortgage') return s + (isMortgageReady(d) ? mortgageEngine(getMortgageLoanInput(d)).monthlyPayment : 0);
+    if(SIMPLE_LOAN_TYPES.includes(d.type)) return s + (parseFloat(d.monthlyPayment)||0);
+    return s;
+  },0);
   setText('loanMonthlyTotal', loanMonthlyTotal ? fmt(loanMonthlyTotal) : '--');
 
   const c=el('debtPageList');
@@ -566,7 +842,44 @@ function renderAssetAllocation() {
   card.innerHTML = summaryHTML + '<div class="cashflow-divider"></div>' + listHTML + alertHTML;
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderAssetAllocation();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
+/** 首頁「🏦 房貸概況」（v3.0）：彙總所有房貸，若無房貸資料則自動隱藏整個區塊 */
+function renderMortgageSummary(){
+  const debts = LS.get(KEY_D);
+  const mortgages = debts.filter(d=>d.type==='mortgage');
+  const section = el('mortgageSummarySection');
+  if(!section) return;
+
+  if(!mortgages.length){
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+
+  let totalRemaining=0, totalMonthly=0, totalPaidPrincipal=0, totalPaidInterest=0, totalOriginal=0, readyCount=0;
+  mortgages.forEach(m=>{
+    totalRemaining += parseFloat(m.amount)||0;
+    if(isMortgageReady(m)){
+      const r = mortgageEngine(getMortgageLoanInput(m));
+      totalMonthly += r.monthlyPayment;
+      totalPaidPrincipal += r.paidPrincipal;
+      totalPaidInterest += r.paidInterest;
+      totalOriginal += r.originalAmount;
+      readyCount++;
+    }
+  });
+
+  setText('mortgageSumRemaining', fmt(totalRemaining));
+  setText('mortgageSumMonthly', readyCount ? fmt(totalMonthly) : '--');
+  setText('mortgageSumPaidPrincipal', readyCount ? fmt(totalPaidPrincipal) : '--');
+  setText('mortgageSumPaidInterest', readyCount ? fmt(totalPaidInterest) : '--');
+
+  const progressPct = (readyCount && totalOriginal>0) ? Math.round(totalPaidPrincipal/totalOriginal*100) : 0;
+  setText('mortgageSumProgress', readyCount ? progressPct+'%' : '--');
+  const fill = el('mortgageSumProgressFill');
+  if(fill) fill.style.width = (readyCount?progressPct:0)+'%';
+}
+
+function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderAssetAllocation();renderMortgageSummary();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
 
 /* ══════════════════════════════════════════
    Goals（v1.9）
@@ -1058,6 +1371,10 @@ function editItem(mode,index){
   el('fNote').value=item.note||'';
   el('fMonthly').value=item.monthlyPayment||'';
   el('fRemaining').value=item.remainingMonths||'';
+  el('fOriginal').value=item.originalAmount||'';
+  el('fTotalMonths').value=item.totalMonths||'';
+  el('fStartDate').value=item.startDate||'';
+  if(el('fRepayMethod'))el('fRepayMethod').value=item.repaymentMethod||'equalPayment';
   onTypeChange();
   el('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -1078,17 +1395,23 @@ function buildSelect(mode){
 }
 function onTypeChange(){
   const v=el('fType').value;
-  const isLoanType = _mode==='debt' && LOAN_TYPES.includes(v);
+  const isMortgageType = _mode==='debt' && v==='mortgage';
+  const isSimpleLoanType = _mode==='debt' && SIMPLE_LOAN_TYPES.includes(v);
   el('fCostGroup').style.display=v==='etf'?'flex':'none';
   el('fRateGroup').style.display=['mortgage','carloan','personal','credit'].includes(v)?'flex':'none';
-  el('fMonthlyGroup').style.display=isLoanType?'flex':'none';
-  el('fRemainingGroup').style.display=isLoanType?'flex':'none';
+  el('fOriginalGroup').style.display=isMortgageType?'flex':'none';
+  el('fTotalMonthsGroup').style.display=isMortgageType?'flex':'none';
+  el('fStartDateGroup').style.display=isMortgageType?'flex':'none';
+  el('fRepayMethodGroup').style.display=isMortgageType?'flex':'none';
+  el('fMonthlyGroup').style.display=isSimpleLoanType?'flex':'none';
+  el('fRemainingGroup').style.display=isSimpleLoanType?'flex':'none';
   const amountLabel=el('fAmountLabel');
-  if(amountLabel)amountLabel.textContent=isLoanType?'剩餘本金（元）':'金額（元）';
+  if(amountLabel)amountLabel.textContent=(isMortgageType||isSimpleLoanType)?'剩餘本金（元）':'金額（元）';
   el('fName').placeholder=NAME_PH[v]||'請輸入名稱';
 }
 function clearForm(){
-  ['fName','fAmount','fCost','fRate','fNote','fMonthly','fRemaining'].forEach(id=>{const e=el(id);if(e)e.value=''});
+  ['fName','fAmount','fCost','fRate','fNote','fMonthly','fRemaining','fOriginal','fTotalMonths','fStartDate'].forEach(id=>{const e=el(id);if(e)e.value=''});
+  const rm=el('fRepayMethod');if(rm)rm.value='equalPayment';
   const fe=el('fError');if(fe){fe.textContent='';fe.classList.remove('show')}
 }
 function showErr(msg){const e=el('fError');if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show')}
@@ -1102,19 +1425,36 @@ function saveItem(){
   const note=el('fNote').value.trim();
   const monthlyPayment=parseFloat(el('fMonthly').value);
   const remainingMonths=parseInt(el('fRemaining').value,10);
+  const originalAmount=parseFloat(el('fOriginal').value);
+  const totalMonths=parseInt(el('fTotalMonths').value,10);
+  const startDate=el('fStartDate').value;
+  const repaymentMethod=el('fRepayMethod')?el('fRepayMethod').value:'equalPayment';
+
   if(!name){showErr('請輸入名稱');return}
   if(isNaN(amount)||amount<0){showErr('請輸入有效金額（≥ 0）');return}
   if(!isNaN(rate)&&(rate<0||rate>50)){showErr('利率請輸入合理範圍');return}
-  const isLoanType = _mode==='debt' && LOAN_TYPES.includes(type);
-  if(isLoanType && !isNaN(monthlyPayment) && monthlyPayment<0){showErr('每月應繳金額請輸入有效數字（≥ 0）');return}
-  if(isLoanType && !isNaN(remainingMonths) && remainingMonths<0){showErr('剩餘期數請輸入有效數字（≥ 0）');return}
+
+  const isMortgageType = _mode==='debt' && type==='mortgage';
+  const isSimpleLoanType = _mode==='debt' && SIMPLE_LOAN_TYPES.includes(type);
+
+  if(isSimpleLoanType && !isNaN(monthlyPayment) && monthlyPayment<0){showErr('每月應繳金額請輸入有效數字（≥ 0）');return}
+  if(isSimpleLoanType && !isNaN(remainingMonths) && remainingMonths<0){showErr('剩餘期數請輸入有效數字（≥ 0）');return}
+  if(isMortgageType && !isNaN(originalAmount) && originalAmount<0){showErr('原始貸款金額請輸入有效數字（≥ 0）');return}
+  if(isMortgageType && !isNaN(totalMonths) && totalMonths<0){showErr('貸款總期數請輸入有效數字（≥ 0）');return}
+
   const item={type,name,amount};
   if(!isNaN(cost)&&cost>=0)item.cost=cost;
   if(!isNaN(rate)&&rate>=0)item.rate=rate;
   if(note)item.note=note;
-  if(isLoanType){
+  if(isSimpleLoanType){
     if(!isNaN(monthlyPayment)&&monthlyPayment>=0)item.monthlyPayment=monthlyPayment;
     if(!isNaN(remainingMonths)&&remainingMonths>=0)item.remainingMonths=remainingMonths;
+  }
+  if(isMortgageType){
+    if(!isNaN(originalAmount)&&originalAmount>=0)item.originalAmount=originalAmount;
+    if(!isNaN(totalMonths)&&totalMonths>=0)item.totalMonths=totalMonths;
+    if(startDate)item.startDate=startDate;
+    item.repaymentMethod=repaymentMethod;
   }
   const key=_mode==='asset'?KEY_A:KEY_D;
   const list=LS.get(key);
@@ -1166,10 +1506,10 @@ function loadTestData(){
   ];
 
   const testDebts = [
-    {type:'mortgage', name:'玉山房貸',       amount:8000000, rate:2.1},
-    {type:'carloan',  name:'中租車貸',       amount:500000,  rate:3.5},
-    {type:'personal', name:'國泰信貸',       amount:200000,  rate:5.88},
-    {type:'credit',   name:'台新信用卡',     amount:30000},
+    {type:'mortgage', name:'玉山房貸', amount:8000000, rate:2.1, originalAmount:9000000, totalMonths:360, startDate:'2023-03-05', repaymentMethod:'equalPayment'},
+    {type:'carloan',  name:'中租車貸', amount:500000,  rate:3.5, monthlyPayment:15000, remainingMonths:36},
+    {type:'personal', name:'國泰信貸', amount:200000,  rate:5.88, monthlyPayment:8500,  remainingMonths:24},
+    {type:'credit',   name:'台新信用卡', amount:30000},
     {type:'credit',   name:'中國信託信用卡', amount:15000},
   ];
 
