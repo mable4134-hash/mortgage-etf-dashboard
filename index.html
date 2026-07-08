@@ -74,6 +74,40 @@
       </div>
     </div>
 
+    <!-- 房貸概況（v3.0，若無房貸資料則自動隱藏） -->
+    <div class="home-section" id="mortgageSummarySection" style="display:none">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot" style="background:var(--purple);box-shadow:0 0 5px var(--purple)"></span>🏦 房貸概況</div>
+      </div>
+      <div class="mortgage-summary-card">
+        <div class="mortgage-summary-progress">
+          <div class="mortgage-summary-progress-label">
+            <span>還款進度</span>
+            <span id="mortgageSumProgress">--</span>
+          </div>
+          <div class="goal-bar-bg"><div class="goal-bar-fill" id="mortgageSumProgressFill" style="width:0%;background:var(--purple)"></div></div>
+        </div>
+        <div class="mortgage-summary-grid">
+          <div class="mortgage-summary-item">
+            <div class="mortgage-summary-item-label">剩餘本金</div>
+            <div class="mortgage-summary-item-value val--red" id="mortgageSumRemaining">--</div>
+          </div>
+          <div class="mortgage-summary-item">
+            <div class="mortgage-summary-item-label">每月應繳</div>
+            <div class="mortgage-summary-item-value val--orange" id="mortgageSumMonthly">--</div>
+          </div>
+          <div class="mortgage-summary-item">
+            <div class="mortgage-summary-item-label">已還本金</div>
+            <div class="mortgage-summary-item-value val--green" id="mortgageSumPaidPrincipal">--</div>
+          </div>
+          <div class="mortgage-summary-item">
+            <div class="mortgage-summary-item-label">已付利息</div>
+            <div class="mortgage-summary-item-value val--purple" id="mortgageSumPaidInterest">--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 財務健康分析 -->
     <div class="home-section">
       <div class="section-header">
@@ -198,7 +232,7 @@
     </div>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v2.4 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v3.0 · 個人資產負債儀表板</div>
 
   </div>
 </div>
@@ -225,7 +259,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
 
-    <div class="ver-badge">v2.4</div>
+    <div class="ver-badge">v3.0</div>
 
   </div>
 </div>
@@ -262,7 +296,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
 
-    <div class="ver-badge">v2.4</div>
+    <div class="ver-badge">v3.0</div>
 
   </div>
 </div>
@@ -343,7 +377,7 @@
       </div>
     </div>
 
-    <div class="ver-badge">v2.4</div>
+    <div class="ver-badge">v3.0</div>
 
   </div>
 </div>
@@ -468,7 +502,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openGoalModal()">＋ 新增財務目標</button>
 
-    <div class="ver-badge">v2.4</div>
+    <div class="ver-badge">v3.0</div>
   </div>
 </div>
 
@@ -547,6 +581,26 @@
       <div class="form-group" id="fRateGroup" style="display:none">
         <label class="form-label" for="fRate">年利率（%，選填）</label>
         <input class="form-input" id="fRate" type="number" placeholder="例：2.16" min="0" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="form-group" id="fOriginalGroup" style="display:none">
+        <label class="form-label" for="fOriginal">原始貸款金額（元）</label>
+        <input class="form-input" id="fOriginal" type="number" placeholder="例：9000000" min="0" inputmode="numeric"/>
+      </div>
+      <div class="form-group" id="fTotalMonthsGroup" style="display:none">
+        <label class="form-label" for="fTotalMonths">貸款總期數（月）</label>
+        <input class="form-input" id="fTotalMonths" type="number" placeholder="例：360" min="1" inputmode="numeric"/>
+      </div>
+      <div class="form-group" id="fStartDateGroup" style="display:none">
+        <label class="form-label" for="fStartDate">起貸日期</label>
+        <input class="form-input" id="fStartDate" type="date"/>
+      </div>
+      <div class="form-group" id="fRepayMethodGroup" style="display:none">
+        <label class="form-label">還款方式</label>
+        <select class="form-select" id="fRepayMethod">
+          <option value="equalPayment">本息平均攤還（等額本息）</option>
+          <option value="equalPrincipal">本金平均攤還（等額本金）</option>
+        </select>
+        <div class="form-note">每月應繳、已還本金、已付利息將依此自動試算</div>
       </div>
       <div class="form-group" id="fMonthlyGroup" style="display:none">
         <label class="form-label" for="fMonthly">每月應繳金額（元，選填）</label>
