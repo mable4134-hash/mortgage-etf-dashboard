@@ -720,11 +720,12 @@ function renderHealthCard() {
     totalScore = Math.round(scored.reduce((a,x)=>a+x.s*x.w,0) / wSum);
   }
 
-  // 等級
+  // 等級（v3.1.1：四級 🟢優良／🟡尚可／🟠待改善／🔴高風險，分數計算公式不變）
   const grade = totalScore === null ? null
-    : totalScore >= 80 ? { label:'優良', color:'var(--green)', bg:'var(--gbg)' }
-    : totalScore >= 60 ? { label:'普通', color:'var(--orange)', bg:'var(--obg)' }
-    :                    { label:'注意', color:'var(--red)',    bg:'var(--rbg)' };
+    : totalScore >= 80 ? { label:'🟢 優良',   color:'var(--green)',  bg:'var(--gbg)' }
+    : totalScore >= 65 ? { label:'🟡 尚可',   color:'var(--yellow)', bg:'var(--ybg)' }
+    : totalScore >= 45 ? { label:'🟠 待改善', color:'var(--orange)', bg:'var(--obg)' }
+    :                    { label:'🔴 高風險', color:'var(--red)',    bg:'var(--rbg)' };
 
   // ── 更新 DOM ──
   const dot = el('healthDot');
@@ -746,16 +747,8 @@ function renderHealthCard() {
     if (scoreEl){ scoreEl.textContent = '--'; scoreEl.style.color = 'var(--t2)'; }
     if (barFill){ barFill.style.width = '0%'; }
   }
-
-  // 三項指標
-  function setMetric(dotId, valId, value, type, display) {
-    const c = indicatorColor(value, type);
-    const d = el(dotId); if(d){ d.style.background = c; d.style.boxShadow = `0 0 4px ${c}`; }
-    const v = el(valId); if(v){ v.textContent = display; v.style.color = c; }
-  }
-  setMetric('debtRatioDot','debtRatioVal', debtRatio,'debt', debtRatio!==null ? (debtRatio*100).toFixed(1)+'%' : '--');
-  setMetric('expRatioDot', 'expRatioVal',  expRatio, 'exp',  expRatio !==null ? (expRatio *100).toFixed(1)+'%' : '--');
-  setMetric('savRatioDot', 'savRatioVal',  savRate,  'sav',  savRate  !==null ? (savRate  *100).toFixed(1)+'%' : '--');
+  // 註：負債比／固定支出率／儲蓄率的個別指標顯示已併入下方「📊 財務健康」五項指標卡（renderHealthOverview），
+  // 這裡只負責分數與等級，避免同一份資料在畫面上重複呈現。
 }
 
 /* ══════════════════════════════════════════
@@ -885,35 +878,35 @@ function renderMortgageSummary(){
 ══════════════════════════════════════════ */
 
 /** 分級小工具：回傳 {emoji, color} */
-function healthGradeAssetDebt(ratio){ // 資產負債比：越高越好
-  if(ratio===null) return {emoji:'⚪',color:'var(--tm)'};
-  if(ratio===Infinity||ratio>=2) return {emoji:'🟢',color:'var(--green)'};
-  if(ratio>=1) return {emoji:'🟡',color:'var(--orange)'};
-  return {emoji:'🔴',color:'var(--red)'};
-}
 function healthGradeDebtRatio(ratio){ // 負債比：越低越好
   if(ratio===null) return {emoji:'⚪',color:'var(--tm)'};
   if(ratio<0.4) return {emoji:'🟢',color:'var(--green)'};
-  if(ratio<=0.6) return {emoji:'🟡',color:'var(--orange)'};
+  if(ratio<=0.6) return {emoji:'🟡',color:'var(--yellow)'};
   return {emoji:'🔴',color:'var(--red)'};
 }
 function healthGradeSavRate(rate){ // 儲蓄率：越高越好
   if(rate===null) return {emoji:'⚪',color:'var(--tm)'};
   if(rate>=0.3) return {emoji:'🟢',color:'var(--green)'};
-  if(rate>=0.1) return {emoji:'🟡',color:'var(--orange)'};
+  if(rate>=0.1) return {emoji:'🟡',color:'var(--yellow)'};
   return {emoji:'🔴',color:'var(--red)'};
 }
 function healthGradeEmergency(months){ // 緊急預備金月數：越高越好
   if(months===null) return {emoji:'⚪',color:'var(--tm)'};
   if(months===Infinity||months>=6) return {emoji:'🟢',color:'var(--green)'};
-  if(months>=3) return {emoji:'🟡',color:'var(--orange)'};
+  if(months>=3) return {emoji:'🟡',color:'var(--yellow)'};
   return {emoji:'🔴',color:'var(--red)'};
 }
 function healthGradeMortgageBurden(rate,hasMortgage){ // 房貸負擔率：越低越好；無房貸視為良好
   if(!hasMortgage) return {emoji:'🟢',color:'var(--green)'};
   if(rate===null) return {emoji:'⚪',color:'var(--tm)'};
   if(rate<0.3) return {emoji:'🟢',color:'var(--green)'};
-  if(rate<=0.4) return {emoji:'🟡',color:'var(--orange)'};
+  if(rate<=0.4) return {emoji:'🟡',color:'var(--yellow)'};
+  return {emoji:'🔴',color:'var(--red)'};
+}
+function healthGradeGoalCompletion(pct){ // 財務目標完成率：越高越好（門檻沿用 Goals 頁 goalBarColor 的區間）
+  if(pct===null) return {emoji:'⚪',color:'var(--tm)'};
+  if(pct>=80) return {emoji:'🟢',color:'var(--green)'};
+  if(pct>=50) return {emoji:'🟡',color:'var(--yellow)'};
   return {emoji:'🔴',color:'var(--red)'};
 }
 
@@ -923,66 +916,76 @@ function setHealthMetric(dotId, valId, grade, display){
   const v = el(valId); if(v){ v.textContent = display+' '+grade.emoji; v.style.color = grade.color; }
 }
 
-/** 依 5 項指標的分級狀況，產生 2~5 條規則式建議（非 AI，固定邏輯判斷） */
+/** 依五項指標的分級狀況，產生最多 5 條規則式建議（非 AI，固定邏輯判斷），
+ *  並依風險程度排序：🔴 高風險 → 🟡 注意 → 🟢 良好 */
 function buildHealthSuggestions(m){
-  const tips=[];
+  const tips=[]; // {text, sev} sev: 0=紅(高風險) 1=黃(注意) 2=綠(良好)
   if(m.debtRatio!==null){
-    tips.push(m.debtRatio<0.4?'✓ 負債比控制良好。':m.debtRatio<=0.6?'⚠ 負債比偏高，建議留意舉債速度。':'⚠ 負債比過高，建議優先降低負債。');
+    if(m.debtRatio<0.4) tips.push({text:'✓ 負債比控制良好。', sev:2});
+    else if(m.debtRatio<=0.6) tips.push({text:'⚠ 負債比偏高，建議留意舉債速度。', sev:1});
+    else tips.push({text:'⚠ 負債比過高，建議優先降低負債。', sev:0});
   }
   if(m.savRate!==null){
-    tips.push(m.savRate>=0.3?'✓ 每月儲蓄率良好。':m.savRate>=0.1?'⚠ 儲蓄率偏低，可檢視固定支出結構。':'⚠ 儲蓄率過低，建議檢討收支狀況。');
+    if(m.savRate>=0.3) tips.push({text:'✓ 每月儲蓄率良好。', sev:2});
+    else if(m.savRate>=0.1) tips.push({text:'⚠ 儲蓄率偏低，可檢視固定支出結構。', sev:1});
+    else tips.push({text:'⚠ 儲蓄率過低，建議檢討收支狀況。', sev:0});
   }
   if(m.emergencyMonths!==null){
-    tips.push((m.emergencyMonths===Infinity||m.emergencyMonths>=6)?'✓ 緊急預備金充足。':m.emergencyMonths>=3?'⚠ 緊急預備金略顯不足，建議增加現金部位。':'⚠ 緊急預備金明顯不足，建議優先累積。');
+    if(m.emergencyMonths===Infinity||m.emergencyMonths>=6) tips.push({text:'✓ 緊急預備金充足。', sev:2});
+    else if(m.emergencyMonths>=3) tips.push({text:'⚠ 緊急預備金略顯不足，建議增加現金部位。', sev:1});
+    else tips.push({text:'⚠ 緊急預備金明顯不足，建議優先累積。', sev:0});
   }
-  if(m.hasMortgage){
-    if(m.mortgageBurden!==null){
-      tips.push(m.mortgageBurden<0.3?'✓ 房貸負擔率健康。':m.mortgageBurden<=0.4?'⚠ 房貸負擔率偏高，建議留意每月現金流壓力。':'⚠ 房貸負擔率過高，建議評估收入成長或部分還款計畫。');
-    }
+  if(m.hasMortgage && m.mortgageBurden!==null){
+    if(m.mortgageBurden<0.3) tips.push({text:'✓ 房貸負擔率健康。', sev:2});
+    else if(m.mortgageBurden<=0.4) tips.push({text:'⚠ 房貸負擔率偏高，建議留意每月現金流壓力。', sev:1});
+    else tips.push({text:'⚠ 房貸負擔率過高，建議評估收入成長或部分還款計畫。', sev:0});
   }
-  if(m.assetDebtRatio!==null){
-    tips.push((m.assetDebtRatio===Infinity||m.assetDebtRatio>=2)?'✓ 資產負債結構穩健。':m.assetDebtRatio>=1?'⚠ 資產負債比偏低，建議提升資產累積速度。':'⚠ 負債已接近或超過總資產，建議優先處理負債問題。');
+  if(m.goalCompletion!==null){
+    if(m.goalCompletion>=80) tips.push({text:'✓ 財務目標進度良好。', sev:2});
+    else if(m.goalCompletion>=50) tips.push({text:'⚠ 財務目標完成率中等，可檢視存款進度。', sev:1});
+    else tips.push({text:'⚠ 財務目標完成率偏低，建議檢視儲蓄計畫。', sev:0});
   }
-  return tips;
+  tips.sort((a,b)=>a.sev-b.sev); // 紅→黃→綠
+  return tips.slice(0,5).map(t=>t.text);
 }
 
-/** 渲染「📊 財務健康」卡片（v3.1） */
+/** 渲染「📊 財務健康」卡片的五項指標與建議（v3.1.1：與分數／等級合併為同一張卡片） */
 function renderHealthOverview(){
   const assets   = LS.get(KEY_A);
   const debts    = LS.get(KEY_D);
   const incomes  = LS.get(KEY_I);
   const expenses = LS.get(KEY_E);
+  const goals    = LS.get(KEY_G);
   const living   = getLivingExpense();
 
   const totalAsset   = assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
-  const totalDebt    = debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
   const totalIncome  = incomes.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
   const totalExpense = expenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+  const totalDebt    = debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
   const cashTotal    = assets.filter(a=>a.type==='cash').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
   const depositTotal = assets.filter(a=>a.type==='deposit').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
 
-  // 1. 資產負債比＝總資產 ÷ 總負債
-  const assetDebtRatio = totalDebt>0 ? totalAsset/totalDebt : (totalAsset>0?Infinity:null);
-  // 2. 負債比＝總負債 ÷ 總資產
+  // 1. 負債比＝總負債 ÷ 總資產
   const debtRatio = totalAsset>0 ? totalDebt/totalAsset : null;
-  // 3. 每月儲蓄率（沿用目前公式：可支配 ÷ 月收入，可支配＝收入－固定支出）
+  // 2. 每月儲蓄率（沿用目前公式：可支配 ÷ 月收入，可支配＝收入－固定支出）
   const disposable = totalIncome - totalExpense;
   const savRate = totalIncome>0 ? disposable/totalIncome : null;
-  // 4. 緊急預備金月數＝（現金＋定存）÷（固定支出＋生活費）
+  // 3. 緊急預備金月數＝（現金＋定存）÷（固定支出＋生活費）
   const monthlyBurn = totalExpense + living;
   const emergencyMonths = monthlyBurn>0 ? (cashTotal+depositTotal)/monthlyBurn : ((cashTotal+depositTotal)>0?Infinity:null);
-  // 5. 房貸負擔率＝房貸月付 ÷ 每月收入
+  // 4. 房貸負擔率＝房貸月付 ÷ 每月收入
   const hasMortgage = debts.some(d=>d.type==='mortgage');
   const mortgageMonthly = debts.filter(d=>d.type==='mortgage'&&isMortgageReady(d))
     .reduce((s,d)=>s+mortgageEngine(getMortgageLoanInput(d)).monthlyPayment,0);
   const mortgageBurden = (hasMortgage && totalIncome>0) ? mortgageMonthly/totalIncome : null;
+  // 5. 財務目標完成率＝所有目標完成率的平均
+  const goalCompletion = goals.length ? (goals.reduce((s,g)=>{
+    const target = parseFloat(g.target)||0;
+    const current = getGoalCurrent(g);
+    const pct = target>0 ? Math.max(0,Math.min(100, current/target*100)) : 0;
+    return s+pct;
+  },0) / goals.length) : null;
 
-  const dot = el('healthOverviewDot');
-  const anyData = assets.length||debts.length||incomes.length||expenses.length;
-  if(dot){ dot.style.background = anyData?'var(--blue)':'var(--tm)'; dot.style.boxShadow = anyData?'0 0 5px var(--blue)':'none'; }
-
-  setHealthMetric('hoAssetDebtDot','hoAssetDebtVal', healthGradeAssetDebt(assetDebtRatio),
-    assetDebtRatio===null?'--':assetDebtRatio===Infinity?'∞（無負債）':assetDebtRatio.toFixed(2)+' 倍');
   setHealthMetric('hoDebtRatioDot','hoDebtRatioVal', healthGradeDebtRatio(debtRatio),
     debtRatio===null?'--':(debtRatio*100).toFixed(1)+'%');
   setHealthMetric('hoSavRateDot','hoSavRateVal', healthGradeSavRate(savRate),
@@ -991,8 +994,10 @@ function renderHealthOverview(){
     emergencyMonths===null?'--':emergencyMonths===Infinity?'∞':emergencyMonths.toFixed(1)+' 個月');
   setHealthMetric('hoMortgageBurdenDot','hoMortgageBurdenVal', healthGradeMortgageBurden(mortgageBurden,hasMortgage),
     !hasMortgage?'無房貸':mortgageBurden===null?'--':(mortgageBurden*100).toFixed(1)+'%');
+  setHealthMetric('hoGoalDot','hoGoalVal', healthGradeGoalCompletion(goalCompletion),
+    goalCompletion===null?'--':goalCompletion.toFixed(1)+'%');
 
-  const tips = buildHealthSuggestions({debtRatio,savRate,emergencyMonths,mortgageBurden,assetDebtRatio,hasMortgage});
+  const tips = buildHealthSuggestions({debtRatio,savRate,emergencyMonths,mortgageBurden,hasMortgage,goalCompletion});
   const listEl = el('healthSuggestList');
   if(listEl){
     listEl.innerHTML = tips.length
@@ -1001,104 +1006,7 @@ function renderHealthOverview(){
   }
 }
 
-/* ══════════════════════════════════════════
-   資產／負債配置圓餅圖（v3.1，Chart.js）
-   僅讀取既有 nw_assets／nw_debts，不新增 localStorage
-══════════════════════════════════════════ */
-const ASSET_PIE_COLORS = { cash:'#22D3A8', etf:'#38BDF8', house:'#A78BFA', deposit:'#F97316', other:'#8B949E' };
-const DEBT_PIE_COLORS  = { mortgage:'#EF4444', carloan:'#F97316', personal:'#A78BFA', credit:'#38BDF8', other:'#8B949E' };
-let _assetPieChart = null;
-let _debtPieChart = null;
-
-function renderAssetPieChart(){
-  const assets = LS.get(KEY_A);
-  const section = el('assetPieSection');
-  if(!section) return;
-  const totalA = assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
-  if(!assets.length || totalA<=0){ section.style.display='none'; return; }
-  section.style.display='';
-
-  const group={};
-  assets.forEach(a=>{ const k=a.type||'other'; group[k]=(group[k]||0)+(parseFloat(a.amount)||0); });
-  const order = ASSET_TYPES.map(t=>t.value).filter(k=>group[k]);
-  const labels = order.map(k=>getType('asset',k).label);
-  const data = order.map(k=>group[k]);
-  const colors = order.map(k=>ASSET_PIE_COLORS[k]||'#8B949E');
-
-  renderPieChart('assetPieCanvas', labels, data, colors, totalA, (chart)=>{ _assetPieChart=chart; }, _assetPieChart);
-
-  const legendEl = el('assetPieLegend');
-  if(legendEl){
-    legendEl.innerHTML = order.map((k,i)=>{
-      const pct = (data[i]/totalA*100).toFixed(1);
-      return `<div class="pie-legend-row">
-        <span class="pie-legend-dot" style="background:${colors[i]}"></span>
-        <span class="pie-legend-label">${labels[i]}</span>
-        <span class="pie-legend-pct">${pct}%</span>
-      </div>`;
-    }).join('');
-  }
-}
-
-function renderDebtPieChart(){
-  const debts = LS.get(KEY_D);
-  const section = el('debtPieSection');
-  if(!section) return;
-  const totalD = debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
-  if(!debts.length || totalD<=0){ section.style.display='none'; return; }
-  section.style.display='';
-
-  const group={};
-  debts.forEach(d=>{ const k=d.type||'other'; group[k]=(group[k]||0)+(parseFloat(d.amount)||0); });
-  const order = DEBT_TYPES.map(t=>t.value).filter(k=>group[k]);
-  const labels = order.map(k=>getType('debt',k).label);
-  const data = order.map(k=>group[k]);
-  const colors = order.map(k=>DEBT_PIE_COLORS[k]||'#8B949E');
-
-  renderPieChart('debtPieCanvas', labels, data, colors, totalD, (chart)=>{ _debtPieChart=chart; }, _debtPieChart);
-
-  const legendEl = el('debtPieLegend');
-  if(legendEl){
-    legendEl.innerHTML = order.map((k,i)=>{
-      const pct = (data[i]/totalD*100).toFixed(1);
-      return `<div class="pie-legend-row">
-        <span class="pie-legend-dot" style="background:${colors[i]}"></span>
-        <span class="pie-legend-label">${labels[i]}</span>
-        <span class="pie-legend-pct">${pct}%</span>
-      </div>`;
-    }).join('');
-  }
-}
-
-/** 共用的圓餅圖繪製函式：畫之前先銷毀舊的 Chart 實例，避免 canvas 重複綁定報錯 */
-function renderPieChart(canvasId, labels, data, colors, total, setChartRef, existingChart){
-  const canvas = el(canvasId);
-  if(!canvas || typeof Chart==='undefined') return;
-  if(existingChart) existingChart.destroy();
-  const chart = new Chart(canvas.getContext('2d'), {
-    type:'pie',
-    data:{ labels, datasets:[{ data, backgroundColor: colors, borderColor:'#161B22', borderWidth:2 }] },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{
-        legend:{ display:false },
-        tooltip:{
-          callbacks:{
-            label:(ctx)=>{
-              const val=ctx.parsed;
-              const pct=total>0?(val/total*100).toFixed(1):0;
-              return `${ctx.label}：${fmt(val)} 元（${pct}%）`;
-            }
-          }
-        }
-      }
-    }
-  });
-  setChartRef(chart);
-}
-
-function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderHealthOverview();renderAssetAllocation();renderAssetPieChart();renderDebtPieChart();renderMortgageSummary();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
+function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderHealthOverview();renderAssetAllocation();renderMortgageSummary();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
 
 /* ══════════════════════════════════════════
    Goals（v1.9）
@@ -1775,12 +1683,6 @@ function clearAllData(){
 
 /* ══ 初始化 ══ */
 function init(){
-  // Chart.js 深色主題預設（v3.1）：避免圖例／提示文字用預設黑字看不清楚
-  if(typeof Chart!=='undefined'){
-    Chart.defaults.color = '#8B949E';
-    Chart.defaults.borderColor = '#252D3D';
-    Chart.defaults.font.family = "'Inter',-apple-system,BlinkMacSystemFont,sans-serif";
-  }
   const now=new Date();
   const hd=el('hDate');
   if(hd)hd.innerHTML=`<div>${now.toLocaleDateString('zh-TW',{year:'numeric',month:'long'})}</div><div>更新 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</div>`;
