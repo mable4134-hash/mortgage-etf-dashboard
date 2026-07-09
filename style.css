@@ -4,6 +4,7 @@
   --t1:#E6EDF3;--t2:#8B949E;--tm:#484F58;
   --green:#22D3A8;--gbg:#0A2820;
   --orange:#F97316;--obg:#2D1A0A;
+  --yellow:#EAB308;--ybg:#2D2A0A;
   --red:#EF4444;--rbg:#2D1010;
   --blue:#38BDF8;--bbg:#0C1E30;
   --purple:#A78BFA;--pbg:#1C1535;
@@ -257,16 +258,6 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .health-suggest-list li{font-size:12px;color:var(--t2);line-height:1.5}
 .health-suggest-empty{color:var(--tm)}
 
-/* ══════════════════════════════════════
-   資產／負債配置圓餅圖（v3.1，Chart.js）
-══════════════════════════════════════ */
-.pie-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:18px}
-.pie-chart-wrap{position:relative;height:220px;width:100%}
-.pie-legend{display:flex;flex-direction:column;gap:8px;margin-top:16px}
-.pie-legend-row{display:flex;align-items:center;gap:8px}
-.pie-legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.pie-legend-label{flex:1;font-size:12px;color:var(--t1);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pie-legend-pct{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--t1)}
 
 /* ══ 動畫 ══ */
 .fade-in{animation:fadeIn .25s ease forwards}
