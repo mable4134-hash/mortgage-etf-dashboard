@@ -108,6 +108,80 @@
       </div>
     </div>
 
+    <!-- 📊 財務健康（v3.1：資產負債比／負債比／儲蓄率／緊急預備金／房貸負擔率＋AI建議） -->
+    <div class="home-section">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot" id="healthOverviewDot"></span>📊 財務健康</div>
+      </div>
+      <div class="fh-card">
+        <div class="fh-metrics">
+
+          <div class="fh-metric">
+            <div class="fh-metric-left">
+              <span class="fh-metric-dot" id="hoAssetDebtDot"></span>
+              <div>
+                <div class="fh-metric-name">資產負債比</div>
+                <div class="fh-metric-hint">總資產 ÷ 總負債</div>
+              </div>
+            </div>
+            <div class="fh-metric-value" id="hoAssetDebtVal">--</div>
+          </div>
+
+          <div class="fh-metric">
+            <div class="fh-metric-left">
+              <span class="fh-metric-dot" id="hoDebtRatioDot"></span>
+              <div>
+                <div class="fh-metric-name">負債比</div>
+                <div class="fh-metric-hint">總負債 ÷ 總資產</div>
+              </div>
+            </div>
+            <div class="fh-metric-value" id="hoDebtRatioVal">--</div>
+          </div>
+
+          <div class="fh-metric">
+            <div class="fh-metric-left">
+              <span class="fh-metric-dot" id="hoSavRateDot"></span>
+              <div>
+                <div class="fh-metric-name">每月儲蓄率</div>
+                <div class="fh-metric-hint">可支配 ÷ 月收入</div>
+              </div>
+            </div>
+            <div class="fh-metric-value" id="hoSavRateVal">--</div>
+          </div>
+
+          <div class="fh-metric">
+            <div class="fh-metric-left">
+              <span class="fh-metric-dot" id="hoEmergencyDot"></span>
+              <div>
+                <div class="fh-metric-name">緊急預備金月數</div>
+                <div class="fh-metric-hint">（現金＋定存）÷（固定支出＋生活費）</div>
+              </div>
+            </div>
+            <div class="fh-metric-value" id="hoEmergencyVal">--</div>
+          </div>
+
+          <div class="fh-metric">
+            <div class="fh-metric-left">
+              <span class="fh-metric-dot" id="hoMortgageBurdenDot"></span>
+              <div>
+                <div class="fh-metric-name">房貸負擔率</div>
+                <div class="fh-metric-hint">房貸月付 ÷ 每月收入</div>
+              </div>
+            </div>
+            <div class="fh-metric-value" id="hoMortgageBurdenVal">--</div>
+          </div>
+
+        </div>
+
+        <div class="health-suggest">
+          <div class="health-suggest-title">💡 建議</div>
+          <ul class="health-suggest-list" id="healthSuggestList">
+            <li class="health-suggest-empty">尚無足夠資料可提供建議</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- 財務健康分析 -->
     <div class="home-section">
       <div class="section-header">
@@ -181,6 +255,28 @@
       </div>
     </div>
 
+    <!-- 資產配置圓餅圖（v3.1） -->
+    <div class="home-section" id="assetPieSection" style="display:none">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot dot--green"></span>資產配置圓餅圖</div>
+      </div>
+      <div class="pie-card">
+        <div class="pie-chart-wrap"><canvas id="assetPieCanvas"></canvas></div>
+        <div class="pie-legend" id="assetPieLegend"></div>
+      </div>
+    </div>
+
+    <!-- 負債配置圓餅圖（v3.1） -->
+    <div class="home-section" id="debtPieSection" style="display:none">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot dot--red"></span>負債配置圓餅圖</div>
+      </div>
+      <div class="pie-card">
+        <div class="pie-chart-wrap"><canvas id="debtPieCanvas"></canvas></div>
+        <div class="pie-legend" id="debtPieLegend"></div>
+      </div>
+    </div>
+
     <!-- 每月現金流 -->
     <div class="home-section">
       <div class="section-header">
@@ -232,7 +328,7 @@
     </div>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v3.0 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v3.1 · 個人資產負債儀表板</div>
 
   </div>
 </div>
@@ -259,7 +355,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
 
-    <div class="ver-badge">v3.0</div>
+    <div class="ver-badge">v3.1</div>
 
   </div>
 </div>
@@ -296,7 +392,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
 
-    <div class="ver-badge">v3.0</div>
+    <div class="ver-badge">v3.1</div>
 
   </div>
 </div>
@@ -377,7 +473,7 @@
       </div>
     </div>
 
-    <div class="ver-badge">v3.0</div>
+    <div class="ver-badge">v3.1</div>
 
   </div>
 </div>
@@ -502,7 +598,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openGoalModal()">＋ 新增財務目標</button>
 
-    <div class="ver-badge">v3.0</div>
+    <div class="ver-badge">v3.1</div>
   </div>
 </div>
 
@@ -623,6 +719,7 @@
     </div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
