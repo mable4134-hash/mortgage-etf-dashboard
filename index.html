@@ -31,6 +31,20 @@
 <div class="page active" id="page-home">
   <div class="page-inner">
 
+    <!-- 👋 新手引導（v4.0：僅首次使用且完全沒有資料時顯示，完成過一次後永久不再出現） -->
+    <div class="onboarding-card" id="onboardingCard" style="display:none">
+      <div class="onboarding-icon">👋</div>
+      <div class="onboarding-title">歡迎使用個人資產負債儀表板</div>
+      <div class="onboarding-sub">只要完成四個步驟，即可開始分析你的財務狀況。</div>
+      <div class="onboarding-steps">
+        <div class="onboarding-step"><span class="onboarding-step-num">①</span>新增資產</div>
+        <div class="onboarding-step"><span class="onboarding-step-num">②</span>新增負債</div>
+        <div class="onboarding-step"><span class="onboarding-step-num">③</span>輸入收入</div>
+        <div class="onboarding-step"><span class="onboarding-step-num">④</span>設定財務目標</div>
+      </div>
+      <button class="onboarding-cta" onclick="startOnboarding()">開始建立</button>
+    </div>
+
     <!-- 淨資產橫幅 -->
     <div class="summary-banner">
       <div class="summary-label">淨資產 Net Worth</div>
@@ -49,6 +63,31 @@
           <div class="summary-block-value val--red" id="sDebt">--</div>
           <div class="summary-block-sub" id="sDebtCount">-- 筆</div>
         </div>
+      </div>
+    </div>
+
+    <!-- 📋 資料完整度（v4.0） -->
+    <div class="home-section">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot dot--cashflow"></span>📋 資料完整度</div>
+        <div class="section-total" id="completenessPct">0%</div>
+      </div>
+      <div class="completeness-card">
+        <div class="goal-bar-bg"><div class="goal-bar-fill" id="completenessFill" style="width:0%;background:var(--blue)"></div></div>
+        <div class="completeness-list" id="completenessList"></div>
+      </div>
+    </div>
+
+    <!-- ⚡ 快速新增（v4.0） -->
+    <div class="home-section">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot" style="background:var(--blue);box-shadow:0 0 5px var(--blue)"></span>⚡ 快速新增</div>
+      </div>
+      <div class="quickadd-grid">
+        <button class="quickadd-btn" onclick="goTo('asset')"><span class="quickadd-icon">➕</span>新增資產</button>
+        <button class="quickadd-btn" onclick="goTo('debt')"><span class="quickadd-icon">➕</span>新增負債</button>
+        <button class="quickadd-btn" onclick="goTo('tools')"><span class="quickadd-icon">➕</span>新增收入</button>
+        <button class="quickadd-btn" onclick="goTo('goals')"><span class="quickadd-icon">➕</span>新增 Goal</button>
       </div>
     </div>
 
@@ -260,7 +299,7 @@
     </div>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v3.1.1 · 個人資產負債儀表板</div>
+    <div class="ver-badge">v4.0 · 個人資產負債儀表板</div>
 
   </div>
 </div>
@@ -287,7 +326,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
 
-    <div class="ver-badge">v3.1.1</div>
+    <div class="ver-badge">v4.0</div>
 
   </div>
 </div>
@@ -324,7 +363,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
 
-    <div class="ver-badge">v3.1.1</div>
+    <div class="ver-badge">v4.0</div>
 
   </div>
 </div>
@@ -405,7 +444,7 @@
       </div>
     </div>
 
-    <div class="ver-badge">v3.1.1</div>
+    <div class="ver-badge">v4.0</div>
 
   </div>
 </div>
@@ -530,7 +569,7 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openGoalModal()">＋ 新增財務目標</button>
 
-    <div class="ver-badge">v3.1.1</div>
+    <div class="ver-badge">v4.0</div>
   </div>
 </div>
 
