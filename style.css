@@ -282,6 +282,48 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .goal-remain{font-size:11px;color:var(--t2);margin-top:8px;font-variant-numeric:tabular-nums}
 .goal-remain--done{color:var(--green);font-weight:700}
 
+/* ══════════════════════════════════════
+   新手引導 Onboarding（v4.0）
+══════════════════════════════════════ */
+.onboarding-card{background:linear-gradient(135deg,#0D1F1A 0%,#111827 50%,#13111F 100%);border:1px solid rgba(34,211,168,.2);border-radius:var(--r20);padding:24px;margin-bottom:16px;text-align:center}
+.onboarding-icon{font-size:36px;line-height:1;margin-bottom:8px}
+.onboarding-title{font-size:16px;font-weight:800;color:var(--t1);margin-bottom:6px}
+.onboarding-sub{font-size:12px;color:var(--t2);margin-bottom:16px;line-height:1.6}
+.onboarding-steps{display:flex;flex-direction:column;gap:8px;text-align:left;background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:var(--r12);padding:14px 16px;margin-bottom:16px}
+.onboarding-step{font-size:13px;color:var(--t1);display:flex;align-items:center;gap:8px}
+.onboarding-step-num{font-weight:800;color:var(--green);flex-shrink:0}
+.onboarding-cta{width:100%;padding:14px;background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);font-size:15px;font-weight:700;border-radius:var(--r12);border:1px solid rgba(34,211,168,.2);touch-action:manipulation}
+.onboarding-cta:active{opacity:.85}
+
+/* ══════════════════════════════════════
+   資料完整度（v4.0）
+══════════════════════════════════════ */
+.completeness-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px 18px}
+.completeness-list{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:14px}
+.completeness-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2)}
+
+/* ══════════════════════════════════════
+   快速新增（v4.0）
+══════════════════════════════════════ */
+.quickadd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quickadd-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r12);color:var(--t1);font-size:13px;font-weight:700;touch-action:manipulation;transition:border-color .15s,color .15s}
+.quickadd-btn:active{border-color:var(--green);color:var(--green)}
+.quickadd-icon{font-size:14px}
+
+/* ══════════════════════════════════════
+   空資料提示卡（v4.0，取代單純的空白文字）
+══════════════════════════════════════ */
+.empty-state-card{background:var(--card);border:1px dashed var(--border);border-radius:var(--r16);padding:32px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty-state-icon{font-size:40px;line-height:1}
+.empty-state-title{font-size:15px;font-weight:800;color:var(--t1)}
+.empty-state-benefits{width:100%;text-align:left;background:var(--stat);border-radius:var(--r12);padding:12px 16px;margin-top:4px}
+.empty-state-benefits-label{font-size:12px;color:var(--t2);font-weight:600;margin-bottom:6px}
+.empty-state-benefits ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+.empty-state-benefits li{font-size:12px;color:var(--t2);padding-left:14px;position:relative}
+.empty-state-benefits li::before{content:'•';position:absolute;left:0;color:var(--green)}
+.empty-state-cta{margin-top:8px;padding:12px 28px;border-radius:var(--r12);background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);font-size:13px;font-weight:700;border:1px solid rgba(34,211,168,.2);touch-action:manipulation}
+.empty-state-cta:active{opacity:.85}
+
 /* Goals 首頁摘要 */
 .goal-summary-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r12);margin-bottom:8px}
 .goal-summary-left{display:flex;align-items:center;gap:10px}
