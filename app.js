@@ -200,11 +200,27 @@ const LS={
 };
 const KEY_A='nw_assets', KEY_D='nw_debts';
 const KEY_LE='nw_living_expense';
+/* 新手引導旗標（v4.0）：僅記錄「使用者是否已看過／完成過首次引導」，
+   不屬於任何財務資料，不影響既有 nw_assets／nw_debts／... 等資料結構 */
+const KEY_OB='nw_onboarding_completed';
 
 /* ══ 工具 ══ */
 function fmt(n){if(n===null||n===undefined||isNaN(n))return'--';return new Intl.NumberFormat('zh-TW').format(Math.round(n))}
 function fmtPct(r){if(r===null||isNaN(r))return null;const p=(r*100).toFixed(2);return r>=0?`+${p}%`:`${p}%`}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+/** 產生一致風格的「空資料提示卡」（v4.0），取代單純的空白文字，說明用途並提供 CTA 按鈕 */
+function emptyStateHTML(icon, title, benefits, ctaText, ctaOnclick){
+  return `<div class="empty-state-card">
+    <div class="empty-state-icon">${icon}</div>
+    <div class="empty-state-title">${title}</div>
+    <div class="empty-state-benefits">
+      <div class="empty-state-benefits-label">建立後即可用於：</div>
+      <ul>${benefits.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+    </div>
+    <button class="empty-state-cta" onclick="${ctaOnclick}">${esc(ctaText)}</button>
+  </div>`;
+}
 function el(id){return document.getElementById(id)}
 function setText(id,t){const e=el(id);if(e)e.textContent=t}
 function getType(mode,val){return(mode==='asset'?ASSET_TYPES:DEBT_TYPES).find(t=>t.value===val)||(mode==='asset'?ASSET_TYPES:DEBT_TYPES).at(-1)}
@@ -496,7 +512,7 @@ function renderAssetPage(){
   const c=el('assetPageList');
   if(!c)return;
   if(!assets.length){
-    c.innerHTML='<div class="empty-hint">尚未新增任何資產<br>點下方按鈕開始新增</div>';
+    c.innerHTML=emptyStateHTML('💰','尚未建立任何資產',['淨資產計算','資產配置分析','財務健康評估'],'➕ 新增資產',"openModal('asset')");
     return;
   }
 
@@ -541,7 +557,7 @@ function renderDebtPage(){
   const c=el('debtPageList');
   if(!c)return;
   if(!debts.length){
-    c.innerHTML='<div class="empty-hint">尚未新增任何負債<br>點下方按鈕開始新增</div>';
+    c.innerHTML=emptyStateHTML('📉','尚未建立任何負債',['淨資產計算','負債比分析','財務健康評估'],'➕ 新增負債',"openModal('debt')");
     return;
   }
 
@@ -1006,7 +1022,71 @@ function renderHealthOverview(){
   }
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderHealthOverview();renderAssetAllocation();renderMortgageSummary();renderGoalsSummary();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
+/* ══════════════════════════════════════════
+   新手引導 Onboarding（v4.0）
+   純 UI／導覽邏輯，不涉及任何財務計算或既有資料結構
+══════════════════════════════════════════ */
+
+/** 是否已完成過一次引導（使用者按過「開始建立」就會是 true，之後永久不再顯示） */
+function isOnboardingDone(){
+  return LS.get(KEY_OB, false) === true;
+}
+/** 是否完全沒有任何財務資料（資產／負債／收入／支出／Goals 皆為空） */
+function hasAnyData(){
+  return LS.get(KEY_A).length>0 || LS.get(KEY_D).length>0 || LS.get(KEY_I).length>0
+      || LS.get(KEY_E).length>0 || LS.get(KEY_G).length>0;
+}
+
+/** 渲染首頁歡迎卡片：僅在「未完成引導」且「完全沒有資料」時顯示 */
+function renderOnboarding(){
+  const card = el('onboardingCard');
+  if(!card) return;
+  card.style.display = (!isOnboardingDone() && !hasAnyData()) ? '' : 'none';
+}
+
+/** 「開始建立」按鈕：標記引導已完成（往後不再出現），並直接切換到資產頁 */
+function startOnboarding(){
+  LS.set(KEY_OB, true);
+  renderOnboarding();
+  goTo('asset');
+}
+
+/* ══════════════════════════════════════════
+   資料完整度 Data Completeness（v4.0）
+   僅檢查「是否有資料」，不涉及任何金額計算
+══════════════════════════════════════════ */
+
+/** 計算六個項目的完成狀態；Mortgage 只有在使用者已建立房貸時才納入百分比計算 */
+function getDataCompleteness(){
+  const hasMortgage = LS.get(KEY_D).some(d=>d.type==='mortgage');
+  const items = [
+    { label:'資產',     done: LS.get(KEY_A).length>0 },
+    { label:'負債',     done: LS.get(KEY_D).length>0 },
+    { label:'收入',     done: LS.get(KEY_I).length>0 },
+    { label:'固定支出', done: LS.get(KEY_E).length>0 },
+    { label:'Goals',    done: LS.get(KEY_G).length>0 },
+    { label:'Mortgage', done: hasMortgage, excluded: !hasMortgage },
+  ];
+  const countable = items.filter(i=>!i.excluded);
+  const doneCount = countable.filter(i=>i.done).length;
+  const pct = countable.length ? Math.round(doneCount/countable.length*100) : 0;
+  return { items, pct };
+}
+
+function renderDataCompleteness(){
+  const { items, pct } = getDataCompleteness();
+  setText('completenessPct', pct+'%');
+  const fill = el('completenessFill');
+  if(fill) fill.style.width = pct+'%';
+  const listEl = el('completenessList');
+  if(listEl){
+    listEl.innerHTML = items.map(i=>
+      `<div class="completeness-row"><span>${i.done?'✅':'⚪'}</span><span>${esc(i.label)}</span></div>`
+    ).join('');
+  }
+}
+
+function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderHealthOverview();renderAssetAllocation();renderMortgageSummary();renderGoalsSummary();renderOnboarding();renderDataCompleteness();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
 
 /* ══════════════════════════════════════════
    Goals（v1.9）
@@ -1067,7 +1147,7 @@ function renderGoalsPage() {
   const c = el('goalsPageList');
   if (!c) return;
   if (!list.length) {
-    c.innerHTML = '<div class="empty-hint">尚未設定任何目標<br>點下方按鈕開始新增</div>';
+    c.innerHTML = emptyStateHTML('🎯','尚未建立財務目標',['達成率追蹤','剩餘金額試算'],'建立第一個目標','openGoalModal()');
     return;
   }
   c.innerHTML = list.map((g, i) => {
@@ -1251,7 +1331,7 @@ function renderIncomePage(){
   const c=el('incomePageList');
   if(!c)return;
   if(!list.length){
-    c.innerHTML='<div class="empty-hint">尚未新增任何收入<br>點下方按鈕開始新增</div>';
+    c.innerHTML=emptyStateHTML('💰','尚未建立收入',['現金流分析','儲蓄率計算','財務健康評估'],'➕ 新增收入','openIncomeModal()');
     return;
   }
 
@@ -1371,7 +1451,7 @@ function renderExpensePage(){
   const c=el('expensePageList');
   if(!c)return;
   if(!list.length){
-    c.innerHTML='<div class="empty-hint">尚未新增任何固定支出<br>點下方按鈕開始新增</div>';
+    c.innerHTML=emptyStateHTML('💸','尚未建立固定支出',['現金流分析','儲蓄率計算','財務健康評估'],'➕ 新增固定支出','openExpenseModal()');
     return;
   }
 
