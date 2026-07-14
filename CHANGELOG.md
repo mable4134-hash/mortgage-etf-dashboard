@@ -4,6 +4,34 @@
 
 ---
 
+## v4.1 － Product Polish（產品化）
+
+### Added
+- Hero Banner：首頁最上方新增產品簡介橫幅（🏠 Personal Finance Dashboard），含「立即開始」按鈕，點擊後平滑捲動至 Dashboard 主要區塊
+- Demo Mode：首頁新增「👀 體驗 Demo」區塊，提供「載入示範資料」與「建立自己的資料」兩個按鈕
+  - 示範資料涵蓋現金、ETF、房貸、收入、固定支出、Goals，讓所有 Dashboard 卡片都有資料可展示
+  - 若偵測到使用者已有資料，載入示範資料前會先跳出確認視窗，不會無預警覆蓋
+  - 示範資料實際寫入既有 `nw_assets`／`nw_debts`／... 等 key（新增 `nw_demo_mode` 布林旗標僅供 UI 判斷，不算獨立資料結構），可透過「建立自己的資料」一鍵清除示範資料
+- System Information：工具頁新增「⚙️ 設定」卡片，內含「ℹ 系統資訊」— 顯示 Version、更新日期，並提供 GitHub Repository、README、CHANGELOG 三個可點擊開啟的連結
+- Clear All Data：設定卡片新增「🗑 清除所有資料」，按下後跳出「確定要清除所有資料嗎？此動作無法復原。」確認視窗，確認後清除所有 localStorage 並重新整理頁面，回到首次使用狀態
+- Footer Redesign：所有頁面底部統一改為新版 Footer（Personal Finance Dashboard／Version 4.1／MIT License／GitHub 連結），取代原本的版本徽章
+
+### Changed
+- README 更新：新增產品特色、功能介紹、畫面截圖（待補）、快速開始、v4.1 更新內容，並補上 `nw_demo_mode` 的 localStorage 說明
+- Footer 更新：`asset`／`debt`／`goals`／`tools`／`home` 五個頁面底部的版本徽章統一改為新版 Footer 元件
+
+### Compatibility
+- 完全相容 Version 4.0，未新增任何財務功能
+- Mortgage Engine 未修改（`buildAmortizationSchedule`／`mortgageEngine`／`mortgagePrepaymentSimulation` 等核心函式逐一比對，維持原樣）
+- 財務健康計算未修改（`scoreIndicator`／`renderHealthCard`／`renderHealthOverview` 等核心函式逐一比對，維持原樣）
+- Goals 計算未修改（`getCurrentByType`／`getGoalCurrent`／`goalBarColor` 等核心函式逐一比對，維持原樣）
+- 所有既有 CRUD 流程未修改
+- localStorage 結構未修改，僅新增 `nw_demo_mode` 這一個純 UI 用途的旗標
+- `renderAll()` 已納入本版新增的 `renderDemoSection()`／`renderSystemInfo()`，確保頁面切換與資料異動時同步更新
+- 已完成健康檢查：Node.js 語法驗證、HTML div 標籤配對、重複函式／常數名稱掃描、`renderAll()` 涵蓋率驗證、HTML↔JS ID／onclick 雙向交叉比對，皆通過
+
+> 📌 開發備註：本次盤點發現專案知識庫中儲存的 `app.js` 為 v2.3 舊版（缺少 Mortgage Engine／Onboarding 等 v4.0 功能），與 `index.html`／`style.css`／README／CHANGELOG 所描述的 v4.0 內容不一致，判斷應為誤存的舊檔。本版已改以與 v4.0 文件相符的完整版 `app.js` 為基礎進行開發，並在此記錄供之後比對；建議之後重新上傳 v4.1 三個檔案以更新知識庫版本。
+
 ## v4.0 － Onboarding（新手引導）
 - 首頁新增「👋 新手引導」歡迎卡片：僅在完全沒有任何資料時顯示，列出四個起步步驟，按下「開始建立」後自動切換到資產頁，並永久標記已完成（新增 `nw_onboarding_completed` 旗標，不影響既有資料結構）
 - 首頁新增「📋 資料完整度」卡片：Progress Bar＋百分比，列出資產／負債／收入／固定支出／Goals／Mortgage 六項完成狀態；Mortgage 僅在使用者已建立房貸時才納入百分比計算
