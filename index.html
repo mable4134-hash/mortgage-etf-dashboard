@@ -31,6 +31,24 @@
 <div class="page active" id="page-home">
   <div class="page-inner">
 
+    <!-- 🏠 Hero Banner（v4.1：純展示用途，不涉及任何資料計算） -->
+    <div class="hero-banner">
+      <div class="hero-icon">🏠</div>
+      <div class="hero-title">Personal Finance Dashboard</div>
+      <div class="hero-sub">你的資產、負債、房貸、投資，<br>一個儀表板全部掌握。</div>
+      <button class="hero-cta" onclick="scrollToDashboard()">立即開始</button>
+    </div>
+
+    <!-- 👀 體驗 Demo（v4.1：載入／清除示範資料，不影響使用者既有資料結構） -->
+    <div class="demo-section" id="demoSection">
+      <div class="demo-header">👀 體驗 Demo</div>
+      <div class="demo-badge" id="demoBadge" style="display:none">🧪 目前顯示的是示範資料</div>
+      <div class="demo-buttons">
+        <button class="demo-btn demo-btn--primary" onclick="loadDemoData()">📦 載入示範資料</button>
+        <button class="demo-btn demo-btn--secondary" onclick="buildOwnData()">✍️ 建立自己的資料</button>
+      </div>
+    </div>
+
     <!-- 👋 新手引導（v4.0：僅首次使用且完全沒有資料時顯示，完成過一次後永久不再出現） -->
     <div class="onboarding-card" id="onboardingCard" style="display:none">
       <div class="onboarding-icon">👋</div>
@@ -46,7 +64,7 @@
     </div>
 
     <!-- 淨資產橫幅 -->
-    <div class="summary-banner">
+    <div class="summary-banner" id="dashboardAnchor">
       <div class="summary-label">淨資產 Net Worth</div>
       <div class="summary-net">
         <span class="summary-net-value" id="sNet">--</span>
@@ -299,7 +317,12 @@
     </div>
 
     <!-- 版本標記 -->
-    <div class="ver-badge">v4.0 · 個人資產負債儀表板</div>
+    <div class="app-footer">
+      <div class="app-footer-title">Personal Finance Dashboard</div>
+      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-license">MIT License</div>
+      <a class="app-footer-github" href="#" id="footerGithubLink1" target="_blank" rel="noopener">GitHub</a>
+    </div>
 
   </div>
 </div>
@@ -326,7 +349,12 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openModal('asset')">＋ 新增資產</button>
 
-    <div class="ver-badge">v4.0</div>
+    <div class="app-footer">
+      <div class="app-footer-title">Personal Finance Dashboard</div>
+      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-license">MIT License</div>
+      <a class="app-footer-github" href="#" id="footerGithubLink2" target="_blank" rel="noopener">GitHub</a>
+    </div>
 
   </div>
 </div>
@@ -363,7 +391,12 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openModal('debt')">＋ 新增負債</button>
 
-    <div class="ver-badge">v4.0</div>
+    <div class="app-footer">
+      <div class="app-footer-title">Personal Finance Dashboard</div>
+      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-license">MIT License</div>
+      <a class="app-footer-github" href="#" id="footerGithubLink3" target="_blank" rel="noopener">GitHub</a>
+    </div>
 
   </div>
 </div>
@@ -431,6 +464,40 @@
 
     <div style="height:16px"></div>
 
+    <!-- ⚙️ 設定（v4.1：系統資訊＋一鍵清除資料，純 UI／連結，不涉及任何財務計算） -->
+    <div class="settings-card">
+      <div class="settings-card-title">⚙️ 設定</div>
+
+      <div class="settings-group-label">ℹ 系統資訊</div>
+      <div class="settings-info-list">
+        <div class="settings-info-row">
+          <span class="settings-info-label">Version</span>
+          <span class="settings-info-value" id="sysVersion">--</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="settings-info-label">更新日期</span>
+          <span class="settings-info-value" id="sysUpdateDate">--</span>
+        </div>
+        <a class="settings-info-row settings-info-link" id="sysGithubLink" href="#" target="_blank" rel="noopener">
+          <span class="settings-info-label">GitHub Repository</span>
+          <span class="settings-info-arrow">›</span>
+        </a>
+        <a class="settings-info-row settings-info-link" id="sysReadmeLink" href="#" target="_blank" rel="noopener">
+          <span class="settings-info-label">README</span>
+          <span class="settings-info-arrow">›</span>
+        </a>
+        <a class="settings-info-row settings-info-link" id="sysChangelogLink" href="#" target="_blank" rel="noopener">
+          <span class="settings-info-label">CHANGELOG</span>
+          <span class="settings-info-arrow">›</span>
+        </a>
+      </div>
+
+      <div class="settings-group-label" style="margin-top:16px">🗑 資料管理</div>
+      <button class="btn-dev btn-dev--danger" onclick="resetAllData()">🗑 清除所有資料</button>
+    </div>
+
+    <div style="height:16px"></div>
+
     <!-- 開發工具（v2.3，僅開發／驗收測試用途） -->
     <div class="dev-card">
       <button class="dev-toggle" onclick="toggleDevTools()">
@@ -444,7 +511,12 @@
       </div>
     </div>
 
-    <div class="ver-badge">v4.0</div>
+    <div class="app-footer">
+      <div class="app-footer-title">Personal Finance Dashboard</div>
+      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-license">MIT License</div>
+      <a class="app-footer-github" href="#" id="footerGithubLink4" target="_blank" rel="noopener">GitHub</a>
+    </div>
 
   </div>
 </div>
@@ -569,7 +641,12 @@
     <!-- 新增按鈕 -->
     <button class="btn-add" onclick="openGoalModal()">＋ 新增財務目標</button>
 
-    <div class="ver-badge">v4.0</div>
+    <div class="app-footer">
+      <div class="app-footer-title">Personal Finance Dashboard</div>
+      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-license">MIT License</div>
+      <a class="app-footer-github" href="#" id="footerGithubLink5" target="_blank" rel="noopener">GitHub</a>
+    </div>
   </div>
 </div>
 
