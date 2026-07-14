@@ -386,3 +386,50 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .btn-dev--load:active{opacity:.85}
 .btn-dev--danger{background:var(--rbg);color:var(--red);border-color:rgba(239,68,68,.25)}
 .btn-dev--danger:active{opacity:.85}
+
+/* ══════════════════════════════════════
+   🏠 Hero Banner（v4.1，純展示用途）
+══════════════════════════════════════ */
+.hero-banner{background:linear-gradient(150deg,#0D1F1A 0%,#111827 45%,#13111F 100%);border:1px solid rgba(34,211,168,.18);border-radius:var(--r20);padding:32px 24px;margin-bottom:16px;text-align:center;position:relative;overflow:hidden}
+.hero-banner::before{content:'';position:absolute;top:-60px;left:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(56,189,248,.08),transparent 70%);pointer-events:none}
+.hero-icon{font-size:38px;line-height:1;margin-bottom:10px}
+.hero-title{font-size:20px;font-weight:800;color:var(--t1);letter-spacing:-.3px;margin-bottom:10px}
+.hero-sub{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:20px}
+.hero-cta{padding:14px 36px;background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);font-size:15px;font-weight:700;border-radius:var(--r12);border:1px solid rgba(34,211,168,.25);touch-action:manipulation;box-shadow:0 0 20px rgba(34,211,168,.12)}
+.hero-cta:active{opacity:.85}
+
+/* ══════════════════════════════════════
+   👀 Demo 模式（v4.1）
+══════════════════════════════════════ */
+.demo-section{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px 18px;margin-bottom:16px}
+.demo-header{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px}
+.demo-badge{font-size:11px;font-weight:600;color:var(--orange);background:var(--obg);border:1px solid rgba(249,115,22,.2);border-radius:20px;padding:6px 12px;display:inline-block;margin-bottom:10px}
+.demo-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.demo-btn{padding:12px;border-radius:var(--r12);font-size:12px;font-weight:700;touch-action:manipulation;border:1px solid var(--border)}
+.demo-btn--primary{background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);border-color:rgba(34,211,168,.2)}
+.demo-btn--primary:active{opacity:.85}
+.demo-btn--secondary{background:var(--stat);color:var(--t2)}
+.demo-btn--secondary:active{opacity:.8}
+
+/* ══════════════════════════════════════
+   ⚙️ 設定 / 系統資訊（v4.1）
+══════════════════════════════════════ */
+.settings-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px 18px}
+.settings-card-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:12px}
+.settings-group-label{font-size:11px;color:var(--t2);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}
+.settings-info-list{background:var(--stat);border-radius:var(--r12);overflow:hidden}
+.settings-info-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border2);text-decoration:none;color:inherit}
+.settings-info-row:last-child{border-bottom:none}
+.settings-info-label{font-size:12px;color:var(--t2);font-weight:600}
+.settings-info-value{font-size:12px;color:var(--t1);font-weight:700;font-variant-numeric:tabular-nums}
+.settings-info-arrow{font-size:14px;color:var(--tm)}
+.settings-info-link:active{background:rgba(255,255,255,.03)}
+
+/* ══════════════════════════════════════
+   Footer（v4.1，取代原本的 ver-badge）
+══════════════════════════════════════ */
+.app-footer{text-align:center;padding:24px 0 8px;display:flex;flex-direction:column;gap:3px}
+.app-footer-title{font-size:12px;font-weight:700;color:var(--t2);letter-spacing:.3px}
+.app-footer-version{font-size:10px;color:var(--tm)}
+.app-footer-license{font-size:10px;color:var(--tm)}
+.app-footer-github{font-size:11px;color:var(--green);font-weight:600;margin-top:4px;text-decoration:none}
