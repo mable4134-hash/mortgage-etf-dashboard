@@ -203,6 +203,15 @@ const KEY_LE='nw_living_expense';
 /* 新手引導旗標（v4.0）：僅記錄「使用者是否已看過／完成過首次引導」，
    不屬於任何財務資料，不影響既有 nw_assets／nw_debts／... 等資料結構 */
 const KEY_OB='nw_onboarding_completed';
+/* Demo 模式旗標（v4.1）：僅標記目前畫面上的資料是否為一鍵載入的示範資料，
+   不屬於財務資料本身，Demo 資料實際上仍寫入既有的 nw_assets／nw_debts／... 等 key，
+   不新增任何獨立的示範資料結構 */
+const KEY_DEMO='nw_demo_mode';
+
+/* ══ 系統資訊（v4.1，純展示用途） ══ */
+const APP_VERSION='4.1';
+const APP_UPDATE_DATE='2026-07-13';
+const GITHUB_REPO_URL='https://github.com/mable4134-hash/mortgage-etf-dashboard';
 
 /* ══ 工具 ══ */
 function fmt(n){if(n===null||n===undefined||isNaN(n))return'--';return new Intl.NumberFormat('zh-TW').format(Math.round(n))}
@@ -1086,7 +1095,124 @@ function renderDataCompleteness(){
   }
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderHealthOverview();renderAssetAllocation();renderMortgageSummary();renderGoalsSummary();renderOnboarding();renderDataCompleteness();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
+/* ══════════════════════════════════════════
+   🏠 Hero Banner（v4.1）
+   純導覽功能：捲動至 Dashboard 主要區塊，不涉及任何資料
+══════════════════════════════════════════ */
+function scrollToDashboard(){
+  const target = el('dashboardAnchor');
+  if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ══════════════════════════════════════════
+   👀 Demo 模式（v4.1）
+   Demo 資料實際寫入既有 nw_assets／nw_debts／nw_income／nw_expenses／
+   nw_living_expense／nw_goals 等既有 key，不新增獨立的示範資料結構；
+   僅另外用 nw_demo_mode 這個布林旗標標記「目前畫面上的資料是否為示範資料」，
+   純粹用於 UI 顯示（Badge／清除按鈕），不影響任何計算邏輯
+══════════════════════════════════════════ */
+function isDemoMode(){
+  return LS.get(KEY_DEMO, false) === true;
+}
+
+/** 產生完整涵蓋現金／ETF／房貸／收入／固定支出／Goals 的示範資料集 */
+function getDemoDataset(){
+  return {
+    assets: [
+      {type:'cash',    name:'示範．第一銀行活存', amount:180000},
+      {type:'cash',    name:'示範．國泰世華活存', amount:65000},
+      {type:'etf',     name:'示範．0050 元大台灣50', amount:520000, cost:430000},
+      {type:'etf',     name:'示範．VOO', amount:260000, cost:200000},
+      {type:'deposit', name:'示範．一銀定存 2 年期', amount:200000, rate:2.16},
+      {type:'house',   name:'示範．台北市信義區房屋', amount:13000000},
+      {type:'other',   name:'示範．黃金存摺', amount:40000},
+    ],
+    debts: [
+      {type:'mortgage', name:'示範．玉山房貸', amount:8200000, rate:2.1, originalAmount:9000000, totalMonths:360, startDate:'2023-06-01', repaymentMethod:'equalPayment'},
+      {type:'credit',   name:'示範．台新信用卡', amount:12000},
+    ],
+    income: [
+      {type:'salary',   name:'示範．正職薪資', amount:70000},
+      {type:'dividend', name:'示範．ETF 股息', amount:9000},
+    ],
+    expense: [
+      {type:'mortgage',  name:'示範．玉山房貸月付', amount:29500},
+      {type:'telecom',   name:'示範．電信費', amount:999},
+      {type:'utility',   name:'示範．水電瓦斯', amount:2800},
+    ],
+    living: 22000,
+    goals: [
+      {type:'networth',  name:'示範．存到 600 萬淨資產', target:6000000, note:'2029 年前達成'},
+      {type:'etf',       name:'示範．ETF 累積到 100 萬', target:1000000, note:''},
+      {type:'emergency', name:'示範．緊急預備金 6 個月', target:250000, note:''},
+    ],
+  };
+}
+
+/** 載入示範資料：若目前已有任何資料（不論是使用者資料或先前的示範資料），先跳出確認視窗再覆蓋 */
+function loadDemoData(){
+  if(hasAnyData()){
+    const msg = isDemoMode()
+      ? '要重新載入一組全新的示範資料嗎？目前畫面上的示範資料將會被取代。'
+      : '目前已有資料，載入示範資料將會覆蓋目前的資產、負債、收入、支出、生活費與 Goals，確定要繼續嗎？';
+    if(!confirm(msg)) return;
+  }
+  const demo = getDemoDataset();
+  LS.set(KEY_A, demo.assets);
+  LS.set(KEY_D, demo.debts);
+  LS.set(KEY_I, demo.income);
+  LS.set(KEY_E, demo.expense);
+  LS.set(KEY_LE, demo.living);
+  LS.set(KEY_G, demo.goals);
+  LS.set(KEY_OB, true); // 示範資料已足夠展示，視同完成新手引導，不再顯示歡迎卡片
+  LS.set(KEY_DEMO, true);
+  renderAll();
+  scrollToDashboard();
+}
+
+/** 「建立自己的資料」：若目前是示範模式，先確認並清空示範資料，再導向資產頁開始建立；
+ *  若原本就不是示範模式（例如已有使用者自己的資料），則單純導向資產頁，不清除任何資料 */
+function buildOwnData(){
+  if(isDemoMode()){
+    if(!confirm('這將清除目前的示範資料，開始建立你自己的資料，確定嗎？')) return;
+    [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE].forEach(k=>{ try{ localStorage.removeItem(k); }catch{} });
+    LS.set(KEY_DEMO, false);
+    renderAll();
+  }
+  goTo('asset');
+}
+
+/** 渲染 Demo 區塊：目前是否為示範模式的 Badge 顯示 */
+function renderDemoSection(){
+  const badge = el('demoBadge');
+  if(badge) badge.style.display = isDemoMode() ? '' : 'none';
+}
+
+/* ══════════════════════════════════════════
+   ⚙️ 設定／系統資訊（v4.1）
+   純展示與連結，不涉及任何財務計算
+══════════════════════════════════════════ */
+function renderSystemInfo(){
+  setText('sysVersion', 'v'+APP_VERSION);
+  setText('sysUpdateDate', APP_UPDATE_DATE);
+  const ghLink = el('sysGithubLink'); if(ghLink) ghLink.href = GITHUB_REPO_URL;
+  const readmeLink = el('sysReadmeLink'); if(readmeLink) readmeLink.href = GITHUB_REPO_URL + '/blob/main/README.md';
+  const changelogLink = el('sysChangelogLink'); if(changelogLink) changelogLink.href = GITHUB_REPO_URL + '/blob/main/CHANGELOG.md';
+  ['footerGithubLink1','footerGithubLink2','footerGithubLink3','footerGithubLink4','footerGithubLink5'].forEach(id=>{
+    const a = el(id); if(a) a.href = GITHUB_REPO_URL;
+  });
+}
+
+/** 一鍵清除所有資料（設定頁）：確認後清空所有本專案使用的 localStorage 並重新整理，回到初始使用狀態 */
+function resetAllData(){
+  if(!confirm('確定要清除所有資料嗎？\n\n此動作無法復原。')) return;
+  [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE, KEY_OB, KEY_DEMO].forEach(k=>{
+    try{ localStorage.removeItem(k); }catch{}
+  });
+  location.reload();
+}
+
+function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderHealthOverview();renderAssetAllocation();renderMortgageSummary();renderGoalsSummary();renderOnboarding();renderDataCompleteness();renderDemoSection();renderSystemInfo();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
 
 /* ══════════════════════════════════════════
    Goals（v1.9）
@@ -1746,6 +1872,7 @@ function loadTestData(){
   LS.set(KEY_E, testExpense);
   LS.set(KEY_LE, 20000);
   LS.set(KEY_G, testGoals);
+  LS.set(KEY_DEMO, false); // 開發測試資料與 v4.1 示範資料（Demo）是兩套獨立機制，載入測試資料時關閉示範模式旗標
 
   renderAll(); // 不需重新整理，立即更新所有頁面
 }
@@ -1754,7 +1881,7 @@ function loadTestData(){
 function clearAllData(){
   if(!confirm('確定要清除所有資料嗎？')) return;
 
-  [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE].forEach(k=>{
+  [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE, KEY_DEMO].forEach(k=>{
     try{ localStorage.removeItem(k); }catch{}
   });
 
