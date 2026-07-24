@@ -131,6 +131,17 @@
       </div>
     </div>
 
+    <!-- 📈 投資總覽（v5.0） -->
+    <div class="home-section">
+      <div class="section-header">
+        <div class="section-title"><span class="section-dot" style="background:var(--blue);box-shadow:0 0 5px var(--blue)"></span>📈 投資總覽</div>
+        <span class="home-section-link" onclick="goTo('investment')">查看全部 ›</span>
+      </div>
+      <div id="homeInvestSummary">
+        <div class="overview-empty">尚未新增任何投資</div>
+      </div>
+    </div>
+
     <!-- 房貸概況（v3.0，若無房貸資料則自動隱藏） -->
     <div class="home-section" id="mortgageSummarySection" style="display:none">
       <div class="section-header">
@@ -319,7 +330,7 @@
     <!-- 版本標記 -->
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-version">Version 5.0</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink1" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -351,7 +362,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-version">Version 5.0</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink2" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -393,9 +404,51 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-version">Version 5.0</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink3" target="_blank" rel="noopener">GitHub</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     頁面 3.5：投資中心 v5.0
+══════════════════════════════════════ -->
+<div class="page" id="page-investment">
+  <div class="page-inner">
+
+    <!-- 投資總計橫幅 -->
+    <div class="investment-banner">
+      <div class="summary-label">投資市值 Total Market Value</div>
+      <div class="summary-net">
+        <span class="summary-net-value val--blue" id="invBannerMarketValue">--</span>
+        <span class="summary-net-unit">元</span>
+      </div>
+      <div class="summary-row">
+        <div class="summary-block">
+          <div class="summary-block-label">投資成本</div>
+          <div class="summary-block-value" id="invBannerCost">--</div>
+        </div>
+        <div class="summary-block">
+          <div class="summary-block-label">未實現損益</div>
+          <div class="summary-block-value" id="invBannerPL">--</div>
+          <div class="summary-block-sub" id="invBannerReturnRate">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 各類型投資列表 -->
+    <div id="investmentPageList"></div>
+
+    <!-- 新增按鈕 -->
+    <button class="btn-add" onclick="openInvestmentModal()">＋ 新增投資</button>
+
+    <div class="app-footer">
+      <div class="app-footer-title">Personal Finance Dashboard</div>
+      <div class="app-footer-version">Version 5.0</div>
+      <div class="app-footer-license">MIT License</div>
+      <a class="app-footer-github" href="#" id="footerGithubLink6" target="_blank" rel="noopener">GitHub</a>
     </div>
 
   </div>
@@ -513,7 +566,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-version">Version 5.0</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink4" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -613,6 +666,10 @@
       <span class="nav-icon">📉</span>
       <span>負債</span>
     </button>
+    <button class="nav-btn" id="nav-investment" onclick="goTo('investment')">
+      <span class="nav-icon">📈</span>
+      <span>投資</span>
+    </button>
     <button class="nav-btn" id="nav-goals" onclick="goTo('goals')">
       <span class="nav-icon">🎯</span>
       <span>Goals</span>
@@ -643,7 +700,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 4.1</div>
+      <div class="app-footer-version">Version 5.0</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink5" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -696,6 +753,53 @@
   </div>
 </div>
 
+<!-- ══ Modal：投資新增 / 編輯（v5.0） ══ -->
+<div class="modal-overlay" id="investmentOverlay" onclick="handleInvestmentOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="investmentModalTitle">新增投資</div>
+      <button class="modal-close" onclick="closeInvestmentModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">投資類型</label>
+        <select class="form-select" id="invType">
+          <option value="etf">📈 ETF</option>
+          <option value="stock">📊 股票</option>
+          <option value="fund">🧺 基金</option>
+          <option value="reits">🏢 REITs</option>
+          <option value="bond">📜 債券</option>
+          <option value="other">📦 其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="invName">名稱</label>
+        <input class="form-input" id="invName" type="text" placeholder="例：0050、00919、台積電、VOO" maxlength="30"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="invQuantity">持有數量</label>
+        <input class="form-input" id="invQuantity" type="number" placeholder="例：1000" min="0" step="0.0001" inputmode="decimal"/>
+        <div class="form-note">支援小數（例：零股、基金單位數）</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="invAvgCost">平均成本（每股／每單位，元）</label>
+        <input class="form-input" id="invAvgCost" type="number" placeholder="例：85.5" min="0" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="invPrice">最新價格（每股／每單位，元）</label>
+        <input class="form-input" id="invPrice" type="number" placeholder="例：92.3" min="0" step="0.01" inputmode="decimal"/>
+        <div class="form-note">需手動更新，本工具不串接即時行情</div>
+      </div>
+      <div class="form-error" id="invError"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveInvestment()">💾 儲存</button>
+      <button class="btn-cancel" onclick="closeInvestmentModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ Modal：新增 / 編輯（首頁用） ══ -->
 <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
   <div class="modal">
@@ -717,6 +821,8 @@
         <label class="form-label" for="fAmount" id="fAmountLabel">金額（元）</label>
         <input class="form-input" id="fAmount" type="number" placeholder="例：500000" min="0" inputmode="numeric"/>
       </div>
+      <div class="info-hint-box" id="fAmountHint" style="display:none">留空時，系統會依起貸日期、利率、期數及還款方式自動推算目前剩餘本金；若曾提前還款、增貸或變更貸款條件，建議輸入實際剩餘本金。</div>
+      <div class="info-hint-box" id="fEtfHint" style="display:none">💡 股票／ETF 建議改用 <span class="info-hint-link" onclick="closeModal();goTo('investment')">投資中心</span> 管理，可記錄持有數量與價格並自動試算損益、報酬率；若同一筆持股在這裡與投資中心都有輸入，總資產會重複計算。</div>
       <div class="form-group" id="fCostGroup" style="display:none">
         <label class="form-label" for="fCost">投入成本（元，選填）</label>
         <input class="form-input" id="fCost" type="number" placeholder="例：420000" min="0" inputmode="numeric"/>
