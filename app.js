@@ -193,6 +193,44 @@ function getMortgageLoanInput(item){
   };
 }
 
+/* ══════════════════════════════════════════
+   房貸剩餘本金 Auto / Manual 模式（v4.2）
+   完全沿用既有 Mortgage Engine（buildAmortizationSchedule／mortgageEngine），
+   不建立第二套公式、不使用簡化估算。
+   Mortgage Engine 原本就支援「currentPrincipal 留空時，改用攤還排程推算的剩餘本金」，
+   這裡只是明確地以此方式呼叫，並把結果同步寫回 localStorage 供既有的
+   資產負債計算／財務健康／房貸試算等既有函式（皆未修改）直接讀取使用。
+══════════════════════════════════════════ */
+
+/** 取得這筆房貸目前的剩餘本金模式：'auto' 或 'manual'。
+ *  舊資料（v4.1 以前建立、無此欄位）一律視為 'manual'，維持原本行為，確保向下相容。 */
+function getRemainingPrincipalMode(item){
+  return item.remainingPrincipalMode === 'auto' ? 'auto' : 'manual';
+}
+
+/** 直接呼叫既有 Mortgage Engine，強制忽略 item.amount，改用攤還排程推算目前剩餘本金
+ *  （與 mortgageEngine() 內建的 fallback 邏輯完全相同，僅明確化呼叫方式，非新公式） */
+function mortgageEngineAutoRemaining(item){
+  const loan = getMortgageLoanInput(item);
+  loan.currentPrincipal = undefined; // 強制走攤還排程計算，不受舊值影響
+  return mortgageEngine(loan).remainingPrincipal;
+}
+
+/** 每次載入儀表板時執行一次：把所有「auto 模式」且資料已填妥的房貸，
+ *  依今天日期重新計算剩餘本金並寫回 localStorage，讓房貸餘額自然隨時間遞減。
+ *  manual 模式的房貸完全不受影響，維持使用者輸入值。 */
+function syncAutoMortgagePrincipals(){
+  const debts = LS.get(KEY_D);
+  let changed = false;
+  debts.forEach(d=>{
+    if(d.type==='mortgage' && getRemainingPrincipalMode(d)==='auto' && isMortgageReady(d)){
+      const newAmount = mortgageEngineAutoRemaining(d);
+      if(d.amount !== newAmount){ d.amount = newAmount; changed = true; }
+    }
+  });
+  if(changed) LS.set(KEY_D, debts);
+}
+
 /* ══ localStorage ══ */
 const LS={
   get(k,fb=[]){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb}},
@@ -207,10 +245,13 @@ const KEY_OB='nw_onboarding_completed';
    不屬於財務資料本身，Demo 資料實際上仍寫入既有的 nw_assets／nw_debts／... 等 key，
    不新增任何獨立的示範資料結構 */
 const KEY_DEMO='nw_demo_mode';
+/* 投資中心（v5.0）：獨立資料 key「investments」，不使用 nw_ 前綴、不共用既有 nw_assets 結構，
+   與資產頁既有的「股票／ETF」類型是兩套獨立機制，不會互相同步 */
+const KEY_INV='investments';
 
-/* ══ 系統資訊（v4.1，純展示用途） ══ */
-const APP_VERSION='4.1';
-const APP_UPDATE_DATE='2026-07-13';
+/* ══ 系統資訊（v5.0，純展示用途） ══ */
+const APP_VERSION='5.0';
+const APP_UPDATE_DATE='2026-07-17';
 const GITHUB_REPO_URL='https://github.com/mable4134-hash/mortgage-etf-dashboard';
 
 /* ══ 工具 ══ */
@@ -239,6 +280,7 @@ const PAGE_META={
   home: {title:'資產負債儀表板', sub:'Net Worth Tracker'},
   asset:{title:'資產管理',       sub:'Asset Management'},
   debt: {title:'負債管理',       sub:'Debt Management'},
+  investment:{title:'投資中心',  sub:'Investment Center'},
   goals:{title:'財務目標',       sub:'Financial Goals'},
   tools:{title:'財務工具',       sub:'Financial Tools'},
 };
@@ -257,8 +299,13 @@ function goTo(page){
 /* ══ 渲染總覽 ══ */
 function renderSummary(){
   const assets=LS.get(KEY_A), debts=LS.get(KEY_D);
-  const totalA=assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  const totalAssetsOnly=assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
   const totalD=debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  // v5.0 資產同步：首頁「總資產」／「淨資產」納入投資市值，公式＝現金＋股票/ETF＋不動產＋定存＋其他資產＋投資市值。
+  // 規格原文公式省略了「定存」，為避免影響既有資產功能，這裡採「既有資產總和（不變）＋投資市值（新增）」的疊加方式，不刪減既有項目。
+  // 注意：資產配置分析／財務健康／Goals 的淨資產計算維持只讀 nw_assets（依規格不可修改），不會納入投資市值，因此可能與此處數字不同。
+  const investTotals=getInvestmentTotals();
+  const totalA=totalAssetsOnly+investTotals.totalMarketValue;
   const net=totalA-totalD;
   const netEl=el('sNet');
   if(netEl){
@@ -270,7 +317,8 @@ function renderSummary(){
   setText('sDebt',fmt(totalD));
   setText('sAssetCount',assets.length+' 筆');
   setText('sDebtCount',debts.length+' 筆');
-  setText('homeassetTotal',assets.length?fmt(totalA)+' 元':'');
+  // 資產概況（下方明細列表）維持只顯示 nw_assets 加總，與其下方逐筆列表一致，不混入投資中心數字
+  setText('homeassetTotal',assets.length?fmt(totalAssetsOnly)+' 元':'');
   setText('homeDebtTotal',debts.length?fmt(totalD)+' 元':'');
 }
 
@@ -538,11 +586,16 @@ function renderAssetPage(){
     const t=getType('asset',k);
     const items=grouped[k];
     const subtotal=items.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+    // v5.0：股票／ETF 類型持續提示改用投資中心管理，避免與投資中心重複計算總資產（純提示，不影響資料）
+    const etfHintHTML = k==='etf'
+      ? `<div class="info-hint-box" style="margin-bottom:8px">💡 建議改用 <span class="info-hint-link" onclick="goTo('investment')">投資中心</span> 管理股票／ETF，可記錄持有數量與價格並自動試算損益、報酬率；若同一筆持股在這裡與投資中心都有輸入，總資產會重複計算。</div>`
+      : '';
     return`<div class="asset-group">
       <div class="asset-group-header">
         <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
         <div class="asset-group-total val--green">${fmt(subtotal)} 元</div>
       </div>
+      ${etfHintHTML}
       ${items.map(a=>itemHTML(a,'asset',a._idx)).join('')}
     </div>`;
   }).join('');
@@ -628,7 +681,7 @@ function renderLivingExpense(){
 
 function saveLivingExpense(){
   const amount = parseFloat(el('livingInput').value);
-  if(isNaN(amount) || amount < 0){ showFieldErr('livingError','請輸入有效金額（≥ 0）'); return; }
+  if(isNaN(amount) || amount < 0){ showFieldErr('livingError','請輸入有效金額（≥ 0）','livingInput'); return; }
   LS.set(KEY_LE, amount);
   clearErr('livingError');
   renderLivingExpense();
@@ -1206,13 +1259,262 @@ function renderSystemInfo(){
 /** 一鍵清除所有資料（設定頁）：確認後清空所有本專案使用的 localStorage 並重新整理，回到初始使用狀態 */
 function resetAllData(){
   if(!confirm('確定要清除所有資料嗎？\n\n此動作無法復原。')) return;
-  [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE, KEY_OB, KEY_DEMO].forEach(k=>{
+  [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE, KEY_OB, KEY_DEMO, KEY_INV].forEach(k=>{
     try{ localStorage.removeItem(k); }catch{}
   });
   location.reload();
 }
 
-function renderAll(){renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderHealthOverview();renderAssetAllocation();renderMortgageSummary();renderGoalsSummary();renderOnboarding();renderDataCompleteness();renderDemoSection();renderSystemInfo();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage()}
+/* ══════════════════════════════════════════
+   📈 投資中心 Investment Center（v5.0）
+   獨立資料 key「investments」，與資產頁既有的「股票／ETF」類型是兩套獨立機制，
+   不共用資料、不互相同步。每筆投資皆為使用者手動輸入持有數量／成本／最新價格，
+   不串接任何股票／ETF API，不做即時行情。
+══════════════════════════════════════════ */
+const INVESTMENT_TYPES=[
+  {value:'etf',   label:'ETF',   icon:'📈', cls:'icon--inv-etf'},
+  {value:'stock', label:'股票',  icon:'📊', cls:'icon--inv-stock'},
+  {value:'fund',  label:'基金',  icon:'🧺', cls:'icon--inv-fund'},
+  {value:'reits', label:'REITs', icon:'🏢', cls:'icon--inv-reits'},
+  {value:'bond',  label:'債券',  icon:'📜', cls:'icon--inv-bond'},
+  {value:'other', label:'其他',  icon:'📦', cls:'icon--inv-other'},
+];
+function getInvType(val){ return INVESTMENT_TYPES.find(t=>t.value===val) || INVESTMENT_TYPES.at(-1); }
+
+/** 單筆投資的自動計算：投資成本／目前市值／未實現損益／報酬率（全部即時計算，不可手動輸入） */
+function investmentItemCalc(item){
+  const quantity = parseFloat(item.quantity) || 0;
+  const avgCost  = parseFloat(item.avgCost)   || 0;
+  const price    = parseFloat(item.latestPrice) || 0;
+  const cost        = avgCost * quantity;
+  const marketValue = price * quantity;
+  const pl          = marketValue - cost;
+  const returnRate  = cost > 0 ? (pl / cost * 100) : null;
+  return { quantity, avgCost, price, cost, marketValue, pl, returnRate };
+}
+
+/** 所有投資資料自動加總（用於首頁「📈 投資總覽」卡片與投資頁橫幅） */
+function getInvestmentTotals(){
+  const list = LS.get(KEY_INV);
+  let totalCost=0, totalMarketValue=0;
+  list.forEach(inv=>{
+    const c = investmentItemCalc(inv);
+    totalCost += c.cost;
+    totalMarketValue += c.marketValue;
+  });
+  const totalPL = totalMarketValue - totalCost;
+  const returnRate = totalCost > 0 ? (totalPL / totalCost * 100) : null;
+  return { count: list.length, totalCost, totalMarketValue, totalPL, returnRate };
+}
+
+function fmtReturnRate(rate){
+  if (rate === null || isNaN(rate)) return '--';
+  return (rate >= 0 ? '+' : '') + rate.toFixed(2) + '%';
+}
+
+/** 產生單筆投資項目卡片 HTML */
+function investmentItemHTML(item, index){
+  const t = getInvType(item.type);
+  const c = investmentItemCalc(item);
+  const plColor = c.pl >= 0 ? 'var(--green)' : 'var(--red)';
+  return `<div class="item-card item-card--loan fade-in">
+    <div class="item-card-top">
+      <div class="item-icon ${t.cls}">${t.icon}</div>
+      <div class="item-body">
+        <div class="item-name">${esc(item.name)||t.label}</div>
+        <div class="item-meta">${t.label} · 持有 ${c.quantity} 單位</div>
+      </div>
+      <div class="item-right">
+        <div class="item-value val--blue">${fmt(c.marketValue)} 元</div>
+        <div class="item-sub" style="color:${plColor}">${fmtReturnRate(c.returnRate)}（${c.pl>=0?'+':''}${fmt(c.pl)}）</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-sm" onclick="editInvestment(${index})">✎</button>
+        <button class="btn-sm del" onclick="deleteInvestment(${index})">✕</button>
+      </div>
+    </div>
+    <div class="loan-detail">
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">持有數量</div>
+        <div class="loan-detail-value">${c.quantity}</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">平均成本</div>
+        <div class="loan-detail-value">${fmt(c.avgCost)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">最新價格</div>
+        <div class="loan-detail-value">${fmt(c.price)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">投資成本</div>
+        <div class="loan-detail-value">${fmt(c.cost)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">目前市值</div>
+        <div class="loan-detail-value val--blue">${fmt(c.marketValue)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">未實現損益</div>
+        <div class="loan-detail-value" style="color:${plColor}">${c.pl>=0?'+':''}${fmt(c.pl)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">報酬率</div>
+        <div class="loan-detail-value" style="color:${plColor}">${fmtReturnRate(c.returnRate)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/** 渲染投資頁：橫幅總計＋依類型分組列表；沒有資料時顯示 Empty State */
+function renderInvestmentPage(){
+  const list = LS.get(KEY_INV);
+  const totals = getInvestmentTotals();
+
+  setText('invBannerMarketValue', fmt(totals.totalMarketValue));
+  setText('invBannerCost', fmt(totals.totalCost));
+  const plEl = el('invBannerPL');
+  if(plEl){
+    plEl.textContent = (totals.totalPL>=0?'+':'') + fmt(totals.totalPL) + ' 元';
+    plEl.style.color = totals.count ? (totals.totalPL>=0?'var(--green)':'var(--red)') : 'var(--t1)';
+  }
+  setText('invBannerReturnRate', totals.count ? '報酬率 '+fmtReturnRate(totals.returnRate) : '--');
+
+  const c = el('investmentPageList');
+  if(!c) return;
+  if(!list.length){
+    c.innerHTML = emptyStateHTML('📈','尚未建立任何投資',['投資成本','市值','損益','報酬率'],'➕ 新增第一筆投資','openInvestmentModal()');
+    return;
+  }
+
+  const ORDER=['etf','stock','fund','reits','bond','other'];
+  const grouped={};
+  list.forEach((inv,i)=>{
+    const k=inv.type||'other';
+    if(!grouped[k])grouped[k]=[];
+    grouped[k].push({...inv,_idx:i});
+  });
+
+  c.innerHTML = ORDER.filter(k=>grouped[k]).map(k=>{
+    const t = getInvType(k);
+    const items = grouped[k];
+    const subtotal = items.reduce((s,inv)=>s+investmentItemCalc(inv).marketValue,0);
+    return `<div class="asset-group">
+      <div class="asset-group-header">
+        <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
+        <div class="asset-group-total val--blue">${fmt(subtotal)} 元</div>
+      </div>
+      ${items.map(inv=>investmentItemHTML(inv,inv._idx)).join('')}
+    </div>`;
+  }).join('');
+}
+
+/** 首頁「📈 投資總覽」卡片：所有投資資料自動加總 */
+function renderHomeInvestmentSummary(){
+  const totals = getInvestmentTotals();
+  const c = el('homeInvestSummary');
+  if(!c) return;
+  if(!totals.count){
+    c.innerHTML = '<div class="overview-empty">尚未新增任何投資 · <span style="color:var(--green);cursor:pointer" onclick="goTo(\'investment\')">立即新增 ›</span></div>';
+    return;
+  }
+  const plColor = totals.totalPL>=0?'var(--green)':'var(--red)';
+  c.innerHTML = `<div class="mortgage-summary-grid" style="margin-top:0">
+    <div class="mortgage-summary-item">
+      <div class="mortgage-summary-item-label">投資成本</div>
+      <div class="mortgage-summary-item-value">${fmt(totals.totalCost)}</div>
+    </div>
+    <div class="mortgage-summary-item">
+      <div class="mortgage-summary-item-label">目前市值</div>
+      <div class="mortgage-summary-item-value val--blue">${fmt(totals.totalMarketValue)}</div>
+    </div>
+    <div class="mortgage-summary-item">
+      <div class="mortgage-summary-item-label">未實現損益</div>
+      <div class="mortgage-summary-item-value" style="color:${plColor}">${totals.totalPL>=0?'+':''}${fmt(totals.totalPL)}</div>
+    </div>
+    <div class="mortgage-summary-item">
+      <div class="mortgage-summary-item-label">報酬率</div>
+      <div class="mortgage-summary-item-value" style="color:${plColor}">${fmtReturnRate(totals.returnRate)}</div>
+    </div>
+  </div>`;
+}
+
+/* ══ 投資 Modal（CRUD） ══ */
+let _invEditIdx=-1;
+
+function openInvestmentModal(){
+  _invEditIdx=-1;
+  el('invType').value='etf';
+  el('invName').value='';
+  el('invQuantity').value='';
+  el('invAvgCost').value='';
+  el('invPrice').value='';
+  clearErr('invError');
+  setText('investmentModalTitle','新增投資');
+  el('investmentOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>el('invName').focus(),320);
+}
+
+function editInvestment(index){
+  const list=LS.get(KEY_INV);
+  const item=list[index]; if(!item) return;
+  _invEditIdx=index;
+  el('invType').value=item.type||'etf';
+  el('invName').value=item.name||'';
+  el('invQuantity').value=item.quantity||'';
+  el('invAvgCost').value=item.avgCost||'';
+  el('invPrice').value=item.latestPrice||'';
+  clearErr('invError');
+  setText('investmentModalTitle','編輯投資');
+  el('investmentOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeInvestmentModal(){
+  el('investmentOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function handleInvestmentOverlayClick(e){
+  if(e.target===el('investmentOverlay')) closeInvestmentModal();
+}
+
+function saveInvestment(){
+  const type = el('invType').value;
+  const name = el('invName').value.trim();
+  const quantity = parseFloat(el('invQuantity').value);
+  const avgCost = parseFloat(el('invAvgCost').value);
+  const latestPrice = parseFloat(el('invPrice').value);
+
+  if(!name){ showFieldErr('invError','請輸入名稱','invName'); return; }
+  if(isNaN(quantity)||quantity<=0){ showFieldErr('invError','請輸入有效持有數量（> 0）','invQuantity'); return; }
+  if(isNaN(avgCost)||avgCost<0){ showFieldErr('invError','請輸入有效平均成本（≥ 0）','invAvgCost'); return; }
+  if(isNaN(latestPrice)||latestPrice<0){ showFieldErr('invError','請輸入有效最新價格（≥ 0）','invPrice'); return; }
+
+  const item = { type, name, quantity, avgCost, latestPrice };
+  const list = LS.get(KEY_INV);
+  if(_invEditIdx>=0) list[_invEditIdx]=item; else list.push(item);
+  LS.set(KEY_INV, list);
+  closeInvestmentModal();
+  renderInvestmentPage();
+  renderHomeInvestmentSummary();
+  renderSummary(); // v5.0 資產同步：投資市值變動會影響首頁總資產／淨資產
+}
+
+function deleteInvestment(index){
+  const list=LS.get(KEY_INV);
+  if(!list[index]) return;
+  if(!confirm(`確定刪除「${list[index].name||'此筆投資'}」？`)) return;
+  list.splice(index,1);
+  LS.set(KEY_INV, list);
+  renderInvestmentPage();
+  renderHomeInvestmentSummary();
+  renderSummary();
+}
+
+function renderAll(){syncAutoMortgagePrincipals();renderSummary();renderHomeOverview();renderLivingExpense();renderCashflow();renderHealthCard();renderHealthOverview();renderAssetAllocation();renderMortgageSummary();renderGoalsSummary();renderOnboarding();renderDataCompleteness();renderDemoSection();renderSystemInfo();renderAssetPage();renderDebtPage();renderExpensePage();renderIncomePage();renderGoalsPage();renderInvestmentPage();renderHomeInvestmentSummary()}
+
 
 /* ══════════════════════════════════════════
    Goals（v1.9）
@@ -1406,14 +1708,14 @@ function saveGoal() {
   const name   = el('gfName').value.trim();
   const target = parseFloat(el('gfTarget').value);
   const note   = el('gfNote').value.trim();
-  if (!name)                  { showFieldErr('gfError', '請輸入目標名稱'); return; }
-  if (isNaN(target)||target<=0){ showFieldErr('gfError', '請輸入有效目標金額（> 0）'); return; }
+  if (!name)                  { showFieldErr('gfError', '請輸入目標名稱', 'gfName'); return; }
+  if (isNaN(target)||target<=0){ showFieldErr('gfError', '請輸入有效目標金額（> 0）', 'gfTarget'); return; }
 
   const item = { type, name, target, note };
 
   if (type === 'custom') {
     const current = parseFloat(el('gfCurrent').value);
-    if (isNaN(current) || current < 0) { showFieldErr('gfError', '請輸入有效目前金額（≥ 0）'); return; }
+    if (isNaN(current) || current < 0) { showFieldErr('gfError', '請輸入有效目前金額（≥ 0）', 'gfCurrent'); return; }
     item.current = current;
   }
 
@@ -1537,8 +1839,8 @@ function saveIncome(){
   const type=el('ifType').value;
   const name=el('ifName').value.trim();
   const amount=parseFloat(el('ifAmount').value);
-  if(!name){showFieldErr('ifError','請輸入名稱');return}
-  if(isNaN(amount)||amount<0){showFieldErr('ifError','請輸入有效金額（≥ 0）');return}
+  if(!name){showFieldErr('ifError','請輸入名稱','ifName');return}
+  if(isNaN(amount)||amount<0){showFieldErr('ifError','請輸入有效金額（≥ 0）','ifAmount');return}
   const item={type,name,amount};
   const list=LS.get(KEY_I);
   if(_incomeEditIdx>=0)list[_incomeEditIdx]=item;else list.push(item);
@@ -1658,8 +1960,8 @@ function saveExpense(){
   const type=el('efType').value;
   const name=el('efName').value.trim();
   const amount=parseFloat(el('efAmount').value);
-  if(!name){showFieldErr('efError','請輸入名稱');return}
-  if(isNaN(amount)||amount<0){showFieldErr('efError','請輸入有效金額（≥ 0）');return}
+  if(!name){showFieldErr('efError','請輸入名稱','efName');return}
+  if(isNaN(amount)||amount<0){showFieldErr('efError','請輸入有效金額（≥ 0）','efAmount');return}
   const item={type,name,amount};
   const list=LS.get(KEY_E);
   if(_expenseEditIdx>=0)list[_expenseEditIdx]=item;else list.push(item);
@@ -1675,7 +1977,14 @@ function deleteExpense(index){
   list.splice(index,1);LS.set(KEY_E,list);renderExpensePage();
 }
 
-function showFieldErr(id,msg){const e=el(id);if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show')}
+/** v4.2：驗證失敗時，將對應欄位捲動至可視範圍並自動 focus，避免錯誤訊息被底部按鈕遮住 */
+function scrollAndFocusField(fieldId){
+  const field = el(fieldId);
+  if(!field) return;
+  field.scrollIntoView({behavior:'smooth', block:'center'});
+  setTimeout(()=>{ field.focus(); }, 300);
+}
+function showFieldErr(id,msg,fieldId){const e=el(id);if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show');if(fieldId)scrollAndFocusField(fieldId)}
 function clearErr(id){const e=el(id);if(!e)return;e.textContent='';e.classList.remove('show')}
 
 /* ══ Modal ══ */
@@ -1683,7 +1992,7 @@ let _mode='asset', _editIdx=-1;
 
 function openModal(mode){
   _mode=mode;_editIdx=-1;
-  buildSelect(mode);clearForm();
+  clearForm();buildSelect(mode);
   setText('modalTitle',mode==='asset'?'新增資產':'新增負債');
   el('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -1698,7 +2007,8 @@ function editItem(mode,index){
   setText('modalTitle',mode==='asset'?'編輯資產':'編輯負債');
   el('fType').value=item.type||'';
   el('fName').value=item.name||'';
-  el('fAmount').value=item.amount||'';
+  const isAutoMortgage = mode==='debt' && item.type==='mortgage' && getRemainingPrincipalMode(item)==='auto';
+  el('fAmount').value=isAutoMortgage?'':(item.amount||'');
   el('fCost').value=item.cost||'';
   el('fRate').value=item.rate||'';
   el('fNote').value=item.note||'';
@@ -1709,6 +2019,12 @@ function editItem(mode,index){
   el('fStartDate').value=item.startDate||'';
   if(el('fRepayMethod'))el('fRepayMethod').value=item.repaymentMethod||'equalPayment';
   onTypeChange();
+  // v4.2：auto 模式的房貸，欄位保持空白（避免重新儲存時被誤判為手動輸入），
+  // 但以 placeholder 顯示目前自動計算的剩餘本金供參考
+  if(isAutoMortgage){
+    const fAmountEl=el('fAmount');
+    if(fAmountEl) fAmountEl.placeholder='目前自動計算約 '+fmt(item.amount)+' 元（留空繼續自動更新）';
+  }
   el('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -1741,18 +2057,32 @@ function onTypeChange(){
   const amountLabel=el('fAmountLabel');
   if(amountLabel)amountLabel.textContent=(isMortgageType||isSimpleLoanType)?'剩餘本金（元）':'金額（元）';
   el('fName').placeholder=NAME_PH[v]||'請輸入名稱';
+  // v4.2：房貸剩餘本金改為選填，留空時自動計算；顯示提示並更新 placeholder
+  const fAmountEl=el('fAmount');
+  const amountHint=el('fAmountHint');
+  if(isMortgageType){
+    if(fAmountEl && !fAmountEl.value) fAmountEl.placeholder='留空將自動計算目前剩餘本金';
+    if(amountHint) amountHint.style.display='block';
+  } else {
+    if(fAmountEl) fAmountEl.placeholder='例：500000';
+    if(amountHint) amountHint.style.display='none';
+  }
+  // v5.0：股票／ETF 提示改用投資中心管理，避免與投資中心重複計算總資產（純提示，不影響資料與計算）
+  const etfHint=el('fEtfHint');
+  if(etfHint) etfHint.style.display=(_mode==='asset' && v==='etf')?'block':'none';
 }
 function clearForm(){
   ['fName','fAmount','fCost','fRate','fNote','fMonthly','fRemaining','fOriginal','fTotalMonths','fStartDate'].forEach(id=>{const e=el(id);if(e)e.value=''});
   const rm=el('fRepayMethod');if(rm)rm.value='equalPayment';
   const fe=el('fError');if(fe){fe.textContent='';fe.classList.remove('show')}
 }
-function showErr(msg){const e=el('fError');if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show')}
+function showErr(msg,fieldId){const e=el('fError');if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show');if(fieldId)scrollAndFocusField(fieldId)}
 
 function saveItem(){
   const type=el('fType').value;
   const name=el('fName').value.trim();
-  const amount=parseFloat(el('fAmount').value);
+  const amountRaw=el('fAmount').value.trim();
+  const amount=parseFloat(amountRaw);
   const cost=parseFloat(el('fCost').value);
   const rate=parseFloat(el('fRate').value);
   const note=el('fNote').value.trim();
@@ -1763,19 +2093,24 @@ function saveItem(){
   const startDate=el('fStartDate').value;
   const repaymentMethod=el('fRepayMethod')?el('fRepayMethod').value:'equalPayment';
 
-  if(!name){showErr('請輸入名稱');return}
-  if(isNaN(amount)||amount<0){showErr('請輸入有效金額（≥ 0）');return}
-  if(!isNaN(rate)&&(rate<0||rate>50)){showErr('利率請輸入合理範圍');return}
-
   const isMortgageType = _mode==='debt' && type==='mortgage';
   const isSimpleLoanType = _mode==='debt' && SIMPLE_LOAN_TYPES.includes(type);
 
-  if(isSimpleLoanType && !isNaN(monthlyPayment) && monthlyPayment<0){showErr('每月應繳金額請輸入有效數字（≥ 0）');return}
-  if(isSimpleLoanType && !isNaN(remainingMonths) && remainingMonths<0){showErr('剩餘期數請輸入有效數字（≥ 0）');return}
-  if(isMortgageType && !isNaN(originalAmount) && originalAmount<0){showErr('原始貸款金額請輸入有效數字（≥ 0）');return}
-  if(isMortgageType && !isNaN(totalMonths) && totalMonths<0){showErr('貸款總期數請輸入有效數字（≥ 0）');return}
+  if(!name){showErr('請輸入名稱','fName');return}
+  // v4.2：房貸的剩餘本金改為選填，留空時將自動計算；其他類型維持必填
+  if(isMortgageType){
+    if(amountRaw!=='' && (isNaN(amount)||amount<0)){showErr('剩餘本金請輸入有效金額（≥ 0），或留空以自動計算','fAmount');return}
+  } else {
+    if(isNaN(amount)||amount<0){showErr('請輸入有效金額（≥ 0）','fAmount');return}
+  }
+  if(!isNaN(rate)&&(rate<0||rate>50)){showErr('利率請輸入合理範圍','fRate');return}
 
-  const item={type,name,amount};
+  if(isSimpleLoanType && !isNaN(monthlyPayment) && monthlyPayment<0){showErr('每月應繳金額請輸入有效數字（≥ 0）','fMonthly');return}
+  if(isSimpleLoanType && !isNaN(remainingMonths) && remainingMonths<0){showErr('剩餘期數請輸入有效數字（≥ 0）','fRemaining');return}
+  if(isMortgageType && !isNaN(originalAmount) && originalAmount<0){showErr('原始貸款金額請輸入有效數字（≥ 0）','fOriginal');return}
+  if(isMortgageType && !isNaN(totalMonths) && totalMonths<0){showErr('貸款總期數請輸入有效數字（≥ 0）','fTotalMonths');return}
+
+  const item={type,name};
   if(!isNaN(cost)&&cost>=0)item.cost=cost;
   if(!isNaN(rate)&&rate>=0)item.rate=rate;
   if(note)item.note=note;
@@ -1789,6 +2124,21 @@ function saveItem(){
     if(startDate)item.startDate=startDate;
     item.repaymentMethod=repaymentMethod;
   }
+
+  // v4.2：依剩餘本金欄位是否留空，決定 auto／manual 模式（功能三：手動輸入優先，功能四：模式標記）
+  if(isMortgageType){
+    if(amountRaw===''){
+      item.remainingPrincipalMode='auto';
+      // 直接呼叫既有 Mortgage Engine 計算初始值，不建立第二套公式；之後每次載入由 syncAutoMortgagePrincipals() 依當天日期自動更新
+      item.amount = isMortgageReady(item) ? mortgageEngineAutoRemaining(item) : 0;
+    } else {
+      item.amount = amount;
+      item.remainingPrincipalMode='manual';
+    }
+  } else {
+    item.amount = amount;
+  }
+
   const key=_mode==='asset'?KEY_A:KEY_D;
   const list=LS.get(key);
   if(_editIdx>=0)list[_editIdx]=item;else list.push(item);
@@ -1881,7 +2231,7 @@ function loadTestData(){
 function clearAllData(){
   if(!confirm('確定要清除所有資料嗎？')) return;
 
-  [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE, KEY_DEMO].forEach(k=>{
+  [KEY_A, KEY_D, KEY_I, KEY_E, KEY_G, KEY_LE, KEY_DEMO, KEY_INV].forEach(k=>{
     try{ localStorage.removeItem(k); }catch{}
   });
 
