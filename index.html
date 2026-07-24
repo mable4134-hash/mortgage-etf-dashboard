@@ -311,7 +311,29 @@
           </div>
         </div>
 
-        <div class="cashflow-note">依收入、固定支出及預估生活費估算，實際金額仍會因每月變動支出而不同。</div>
+        <!-- 🏦 房貸補貼（v5.1，只有在有房貸資料時顯示） -->
+        <div id="cfMortgageSubsidySection" style="display:none">
+          <div class="cashflow-divider"></div>
+          <div class="cashflow-mortgage-subsidy-title">🏦 房貸補貼</div>
+          <div class="cashflow-stats">
+            <div class="cashflow-stat">
+              <div class="cashflow-stat-label">房貸月付</div>
+              <div class="cashflow-stat-value val--red" id="cfMortgagePayment">--</div>
+            </div>
+            <div class="cashflow-stat-sep"></div>
+            <div class="cashflow-stat">
+              <div class="cashflow-stat-label">房貸補貼</div>
+              <div class="cashflow-stat-value val--green" id="cfMortgageSubsidy">--</div>
+            </div>
+            <div class="cashflow-stat-sep"></div>
+            <div class="cashflow-stat">
+              <div class="cashflow-stat-label">薪資實際負擔</div>
+              <div class="cashflow-stat-value val--orange" id="cfMortgageActualBurden">--</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cashflow-note">依收入、固定支出、預估生活費及貸款實際月負擔（房貸月付金已扣除補貼）估算，實際金額仍會因每月變動支出而不同。</div>
 
       </div>
     </div>
@@ -330,7 +352,7 @@
     <!-- 版本標記 -->
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.0</div>
+      <div class="app-footer-version">Version 5.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink1" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -362,7 +384,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.0</div>
+      <div class="app-footer-version">Version 5.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink2" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -404,7 +426,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.0</div>
+      <div class="app-footer-version">Version 5.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink3" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -446,7 +468,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.0</div>
+      <div class="app-footer-version">Version 5.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink6" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -566,7 +588,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.0</div>
+      <div class="app-footer-version">Version 5.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink4" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -623,7 +645,7 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">類型</label>
-        <select class="form-select" id="efType">
+        <select class="form-select" id="efType" onchange="onExpenseTypeChange()">
           <option value="mortgage">🏠 房貸</option>
           <option value="carloan">🚗 車貸</option>
           <option value="personal">💳 信貸</option>
@@ -642,6 +664,7 @@
         <label class="form-label" for="efAmount">每月金額（元）</label>
         <input class="form-input" id="efAmount" type="number" placeholder="例：28500" min="0" inputmode="numeric"/>
       </div>
+      <div class="info-hint-box" id="efMortgageHint" style="display:none">💡 房貸月付金已由「負債」頁的房貸資料自動計算，並計入首頁「每月可存金額」；此處若再新增房貸類固定支出，會被重複扣一次。建議不要在這裡另外記錄房貸月付金。</div>
       <div class="form-error" id="efError"></div>
     </div>
     <div class="modal-actions">
@@ -700,7 +723,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.0</div>
+      <div class="app-footer-version">Version 5.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink5" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -851,6 +874,11 @@
           <option value="equalPrincipal">本金平均攤還（等額本金）</option>
         </select>
         <div class="form-note">每月應繳、已還本金、已付利息將依此自動試算</div>
+      </div>
+      <div class="form-group" id="fMonthlySubsidyGroup" style="display:none">
+        <label class="form-label" for="fMonthlySubsidy">每月房貸補貼（元，選填）</label>
+        <input class="form-input" id="fMonthlySubsidy" type="number" placeholder="例：10000" min="0" inputmode="numeric"/>
+        <div class="form-note">若有預留資金補貼房貸，可輸入每月補貼金額。例如：10000 代表每月有 10,000 元不是由薪資支付，留空預設為 0 元</div>
       </div>
       <div class="form-group" id="fMonthlyGroup" style="display:none">
         <label class="form-label" for="fMonthly">每月應繳金額（元，選填）</label>
