@@ -221,6 +221,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 .cashflow-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden}
 .cashflow-main{padding:20px 18px 14px;display:flex;flex-direction:column;gap:4px}
 .cashflow-main-label{font-size:11px;color:var(--t2);letter-spacing:.5px}
+.cashflow-mortgage-subsidy-title{font-size:11px;color:var(--t2);letter-spacing:.5px;padding:14px 18px 2px}
 .cashflow-main-value{font-size:clamp(28px,8vw,40px);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px;line-height:1.1;word-break:break-all}
 .cashflow-main-unit{font-size:13px;color:var(--t2);font-weight:500}
 .cashflow-divider{height:1px;background:var(--border2);margin:0 18px}
