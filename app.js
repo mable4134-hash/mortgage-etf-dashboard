@@ -231,7 +231,49 @@ function syncAutoMortgagePrincipals(){
   if(changed) LS.set(KEY_D, debts);
 }
 
-/* ══ localStorage ══ */
+/* ══════════════════════════════════════════
+   房貸補貼機制（v5.1）
+   讓「每月可存金額」正確反映房貸月付金，並支援「部分房貸由預留資金補貼」的情境
+   （例如增貸後預留活存補貼房貸），使用者薪資實際負擔的金額可能低於銀行扣款金額。
+   完全沿用既有 Mortgage Engine 計算月付金，不建立第二套公式。
+══════════════════════════════════════════ */
+
+/** 單一房貸「補貼後實際負擔」＝房貸月付金－每月房貸補貼，最低不得小於 0。
+ *  舊資料沒有 monthlySubsidy 欄位時，自動視為 0 元補貼，行為與 v5.0 完全相同。 */
+function getMortgageActualBurden(item){
+  if(!isMortgageReady(item)) return 0;
+  const monthlyPayment = mortgageEngine(getMortgageLoanInput(item)).monthlyPayment;
+  const subsidy = parseFloat(item.monthlySubsidy) || 0;
+  return Math.max(0, monthlyPayment - subsidy);
+}
+
+/** 彙總目前所有房貸的月付金／補貼／補貼後實際負擔，供首頁現金流卡片「🏦 房貸補貼」區塊顯示。
+ *  僅房貸資料已填妥（isMortgageReady）者才納入計算；完全沒有房貸資料時三項皆為 0。 */
+function getMortgageSubsidySummary(){
+  const mortgages = LS.get(KEY_D).filter(d=>d.type==='mortgage' && isMortgageReady(d));
+  let totalMonthlyPayment=0, totalSubsidy=0, totalActualBurden=0;
+  mortgages.forEach(d=>{
+    const monthlyPayment = mortgageEngine(getMortgageLoanInput(d)).monthlyPayment;
+    const subsidy = parseFloat(d.monthlySubsidy) || 0;
+    totalMonthlyPayment += monthlyPayment;
+    totalSubsidy += subsidy;
+    totalActualBurden += Math.max(0, monthlyPayment - subsidy);
+  });
+  return { count: mortgages.length, totalMonthlyPayment, totalSubsidy, totalActualBurden };
+}
+
+/** 所有貸款的「補貼後實際月負擔」加總，用於首頁每月可存金額公式。
+ *  目前僅房貸支援補貼欄位。架構上以「逐筆貸款計算後加總」的方式撰寫（而非寫死單一房貸），
+ *  未來若車貸／信貸（SIMPLE_LOAN_TYPES）也支援補貼欄位，可在此比照房貸的方式一併加總，
+ *  不需更動這個函式的呼叫方式或首頁現金流的公式。 */
+function getTotalLoanActualBurden(){
+  let total = getMortgageSubsidySummary().totalActualBurden;
+  // 預留擴充：SIMPLE_LOAN_TYPES（車貸／信貸）目前僅有既有的 monthlyPayment 欄位、尚未支援補貼欄位，
+  // 故本版本不納入車貸／信貸的月付金，避免與固定支出頁既有的車貸／信貸紀錄產生新的重複計算問題。
+  return total;
+}
+
+
 const LS={
   get(k,fb=[]){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},
@@ -250,8 +292,8 @@ const KEY_DEMO='nw_demo_mode';
 const KEY_INV='investments';
 
 /* ══ 系統資訊（v5.0，純展示用途） ══ */
-const APP_VERSION='5.0';
-const APP_UPDATE_DATE='2026-07-17';
+const APP_VERSION='5.1';
+const APP_UPDATE_DATE='2026-07-24';
 const GITHUB_REPO_URL='https://github.com/mable4134-hash/mortgage-etf-dashboard';
 
 /* ══ 工具 ══ */
@@ -695,9 +737,10 @@ function renderCashflow(){
   const totalIncome   = incomeList.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
   const totalExpense  = expenseList.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
   const livingExpense = getLivingExpense();
+  const loanBurden    = getTotalLoanActualBurden(); // v5.1：所有貸款補貼後實際月負擔（目前為房貸月付金－房貸補貼，最低 0）
 
-  // 預估每月可存金額 ＝ 收入－固定支出－生活費
-  const disposable = totalIncome - totalExpense - livingExpense;
+  // v5.1：預估每月可存金額 ＝ 收入－固定支出－生活費－所有貸款實際月負擔
+  const disposable = totalIncome - totalExpense - livingExpense - loanBurden;
 
   const isPos = disposable >= 0;
   const dot   = el('cashflowDot');
@@ -719,6 +762,20 @@ function renderCashflow(){
   setText('cfIncome',  totalIncome    ? fmt(totalIncome)   + ' 元' : '--');
   setText('cfExpense', totalExpense   ? fmt(totalExpense)  + ' 元' : '--');
   setText('cfLiving',  livingExpense  ? fmt(livingExpense) + ' 元' : '--');
+
+  // v5.1：🏦 房貸補貼區塊，只有在有房貸資料時顯示
+  const subsidyInfo = getMortgageSubsidySummary();
+  const subsidySection = el('cfMortgageSubsidySection');
+  if(subsidySection){
+    if(subsidyInfo.count){
+      subsidySection.style.display='';
+      setText('cfMortgagePayment', fmt(subsidyInfo.totalMonthlyPayment)+' 元');
+      setText('cfMortgageSubsidy', fmt(subsidyInfo.totalSubsidy)+' 元');
+      setText('cfMortgageActualBurden', fmt(subsidyInfo.totalActualBurden)+' 元');
+    } else {
+      subsidySection.style.display='none';
+    }
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -1896,11 +1953,16 @@ function renderExpensePage(){
     const t=EXPENSE_TYPES[k]||EXPENSE_TYPES.other;
     const items=grouped[k];
     const subtotal=items.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+    // v5.1：房貸類固定支出持續提示，房貸月付金已由負債頁自動計入首頁現金流，避免重複計算（純提示，不影響資料）
+    const mortgageHintHTML = k==='mortgage'
+      ? `<div class="info-hint-box" style="margin-bottom:8px">💡 房貸月付金已由「負債」頁的房貸資料自動計算，並計入首頁「每月可存金額」；此處的房貸類固定支出會被重複扣一次，建議移除或改記其他類型。</div>`
+      : '';
     return`<div class="asset-group">
       <div class="asset-group-header">
         <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
         <div class="asset-group-total val--orange">${fmt(subtotal)} 元 / 月</div>
       </div>
+      ${mortgageHintHTML}
       ${items.map(e=>`<div class="item-card">
         <div class="item-icon ${t.cls}">${t.icon}</div>
         <div class="item-body">
@@ -1922,12 +1984,19 @@ function renderExpensePage(){
 /* ══ 支出 Modal ══ */
 let _expenseEditIdx=-1;
 
+/** v5.1：固定支出類型為「房貸」時顯示重複計算提醒（房貸月付金已由負債頁自動計入首頁現金流） */
+function onExpenseTypeChange(){
+  const hint = el('efMortgageHint');
+  if(hint) hint.style.display = (el('efType').value==='mortgage') ? 'block' : 'none';
+}
+
 function openExpenseModal(){
   _expenseEditIdx=-1;
   el('efType').value='other';
   el('efName').value='';
   el('efAmount').value='';
   clearErr('efError');
+  onExpenseTypeChange();
   setText('expenseModalTitle','新增固定支出');
   el('expenseOverlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -1942,6 +2011,7 @@ function editExpense(index){
   el('efName').value=item.name||'';
   el('efAmount').value=item.amount||'';
   clearErr('efError');
+  onExpenseTypeChange();
   setText('expenseModalTitle','編輯固定支出');
   el('expenseOverlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -2018,6 +2088,7 @@ function editItem(mode,index){
   el('fTotalMonths').value=item.totalMonths||'';
   el('fStartDate').value=item.startDate||'';
   if(el('fRepayMethod'))el('fRepayMethod').value=item.repaymentMethod||'equalPayment';
+  if(el('fMonthlySubsidy'))el('fMonthlySubsidy').value=item.monthlySubsidy||'';
   onTypeChange();
   // v4.2：auto 模式的房貸，欄位保持空白（避免重新儲存時被誤判為手動輸入），
   // 但以 placeholder 顯示目前自動計算的剩餘本金供參考
@@ -2052,6 +2123,7 @@ function onTypeChange(){
   el('fTotalMonthsGroup').style.display=isMortgageType?'flex':'none';
   el('fStartDateGroup').style.display=isMortgageType?'flex':'none';
   el('fRepayMethodGroup').style.display=isMortgageType?'flex':'none';
+  el('fMonthlySubsidyGroup').style.display=isMortgageType?'flex':'none';
   el('fMonthlyGroup').style.display=isSimpleLoanType?'flex':'none';
   el('fRemainingGroup').style.display=isSimpleLoanType?'flex':'none';
   const amountLabel=el('fAmountLabel');
@@ -2072,7 +2144,7 @@ function onTypeChange(){
   if(etfHint) etfHint.style.display=(_mode==='asset' && v==='etf')?'block':'none';
 }
 function clearForm(){
-  ['fName','fAmount','fCost','fRate','fNote','fMonthly','fRemaining','fOriginal','fTotalMonths','fStartDate'].forEach(id=>{const e=el(id);if(e)e.value=''});
+  ['fName','fAmount','fCost','fRate','fNote','fMonthly','fRemaining','fOriginal','fTotalMonths','fStartDate','fMonthlySubsidy'].forEach(id=>{const e=el(id);if(e)e.value=''});
   const rm=el('fRepayMethod');if(rm)rm.value='equalPayment';
   const fe=el('fError');if(fe){fe.textContent='';fe.classList.remove('show')}
 }
@@ -2092,6 +2164,7 @@ function saveItem(){
   const totalMonths=parseInt(el('fTotalMonths').value,10);
   const startDate=el('fStartDate').value;
   const repaymentMethod=el('fRepayMethod')?el('fRepayMethod').value:'equalPayment';
+  const monthlySubsidy=parseFloat(el('fMonthlySubsidy')?el('fMonthlySubsidy').value:'');
 
   const isMortgageType = _mode==='debt' && type==='mortgage';
   const isSimpleLoanType = _mode==='debt' && SIMPLE_LOAN_TYPES.includes(type);
@@ -2104,6 +2177,8 @@ function saveItem(){
     if(isNaN(amount)||amount<0){showErr('請輸入有效金額（≥ 0）','fAmount');return}
   }
   if(!isNaN(rate)&&(rate<0||rate>50)){showErr('利率請輸入合理範圍','fRate');return}
+  // v5.1：每月房貸補貼為選填，若有輸入須為有效非負數
+  if(isMortgageType && !isNaN(monthlySubsidy) && monthlySubsidy<0){showErr('每月房貸補貼請輸入有效數字（≥ 0）','fMonthlySubsidy');return}
 
   if(isSimpleLoanType && !isNaN(monthlyPayment) && monthlyPayment<0){showErr('每月應繳金額請輸入有效數字（≥ 0）','fMonthly');return}
   if(isSimpleLoanType && !isNaN(remainingMonths) && remainingMonths<0){showErr('剩餘期數請輸入有效數字（≥ 0）','fRemaining');return}
@@ -2123,6 +2198,8 @@ function saveItem(){
     if(!isNaN(totalMonths)&&totalMonths>=0)item.totalMonths=totalMonths;
     if(startDate)item.startDate=startDate;
     item.repaymentMethod=repaymentMethod;
+    // v5.1：每月房貸補貼，留空或 0 則不寫入（讀取端一律以 parseFloat(...)||0 處理，等同 0 元，維持向下相容）
+    if(!isNaN(monthlySubsidy)&&monthlySubsidy>0)item.monthlySubsidy=monthlySubsidy;
   }
 
   // v4.2：依剩餘本金欄位是否留空，決定 auto／manual 模式（功能三：手動輸入優先，功能四：模式標記）
