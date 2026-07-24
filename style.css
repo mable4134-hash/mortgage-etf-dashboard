@@ -177,26 +177,26 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 /* ══ Modal ══ */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
 .modal-overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:680px;padding-bottom:max(env(safe-area-inset-bottom),16px);transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:680px;padding-bottom:max(env(safe-area-inset-bottom),24px);transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
 .modal-overlay.open .modal{transform:translateY(0);transition:transform .3s cubic-bezier(.33,1,.68,1)}
 .modal-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:12px auto 0}
 .modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px}
 .modal-title{font-size:16px;font-weight:800}
 .modal-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r8);background:var(--stat);color:var(--t2);font-size:18px;touch-action:manipulation}
-.modal-body{padding:0 20px;display:flex;flex-direction:column;gap:14px;max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-body{padding:0 20px 8px;display:flex;flex-direction:column;gap:14px;max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-padding-bottom:16px}
 .modal-actions{display:flex;gap:10px;padding:16px 20px 0}
 
 /* ══ 表單 ══ */
 .form-group{display:flex;flex-direction:column;gap:6px}
 .form-label{font-size:12px;color:var(--t2);font-weight:500;letter-spacing:.3px}
-.form-input{background:var(--input);border:1px solid var(--border);border-radius:var(--r8);color:var(--t1);font-family:var(--font);font-size:16px;font-variant-numeric:tabular-nums;padding:12px 14px;width:100%;transition:border-color .15s,box-shadow .15s;-moz-appearance:textfield}
+.form-input{background:var(--input);border:1px solid var(--border);border-radius:var(--r8);color:var(--t1);font-family:var(--font);font-size:16px;font-variant-numeric:tabular-nums;padding:12px 14px;width:100%;transition:border-color .15s,box-shadow .15s;-moz-appearance:textfield;scroll-margin:24px}
 .form-input::-webkit-outer-spin-button,.form-input::-webkit-inner-spin-button{-webkit-appearance:none}
 .form-input::placeholder{color:var(--tm);font-size:14px}
 .form-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,211,168,.1)}
 .form-select{background:var(--input);border:1px solid var(--border);border-radius:var(--r8);color:var(--t1);font-family:var(--font);font-size:15px;padding:12px 14px;width:100%;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B949E' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 .form-select:focus{outline:none;border-color:var(--green)}
 .form-note{font-size:11px;color:var(--tm)}
-.form-error{font-size:12px;color:var(--red);background:var(--rbg);border-radius:var(--r8);padding:0;max-height:0;overflow:hidden;transition:all .2s}
+.form-error{font-size:12px;color:var(--red);background:var(--rbg);border-radius:var(--r8);padding:0;max-height:0;overflow:hidden;transition:all .2s;scroll-margin:16px}
 .form-error.show{padding:8px 12px;max-height:60px}
 .btn-save{flex:2;padding:14px;background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);font-size:15px;font-weight:700;border-radius:var(--r12);border:1px solid rgba(34,211,168,.2);touch-action:manipulation}
 .btn-save:active{opacity:.85}
@@ -372,6 +372,22 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;-webki
 ══════════════════════════════════════ */
 .living-banner{background:linear-gradient(135deg,#1C1535 0%,#111827 100%);border:1px solid rgba(167,139,250,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
 .living-edit-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px 18px;margin-bottom:16px}
+
+/* 提示框（v4.2）：用於非錯誤性質的中性提醒（例如房貸剩餘本金自動計算說明、v5.0 引導改用投資中心） */
+.info-hint-box{font-size:11px;color:var(--t2);line-height:1.6;background:var(--bbg);border:1px solid rgba(56,189,248,.2);border-radius:var(--r8);padding:10px 12px}
+.info-hint-box a,.info-hint-box .info-hint-link{color:var(--blue);font-weight:600;cursor:pointer;text-decoration:none}
+
+/* ══════════════════════════════════════
+   📈 投資中心 Investment Center（v5.0）
+══════════════════════════════════════ */
+.investment-banner{background:linear-gradient(135deg,#0C1E30 0%,#111827 100%);border:1px solid rgba(56,189,248,.18);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
+.icon--inv-etf{background:rgba(56,189,248,.12)}
+.icon--inv-stock{background:rgba(34,211,168,.12)}
+.icon--inv-fund{background:rgba(167,139,250,.12)}
+.icon--inv-reits{background:rgba(249,115,22,.12)}
+.icon--inv-bond{background:rgba(234,179,8,.12)}
+.icon--inv-other{background:rgba(139,148,158,.12)}
+.val--blue{color:var(--blue)}
 
 /* ══════════════════════════════════════
    開發工具（v2.3，僅開發／驗收測試用途）
