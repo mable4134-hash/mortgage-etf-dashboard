@@ -4,6 +4,66 @@
 
 ---
 
+## v5.0 － Investment Center（投資中心）
+
+> 📌 版本順序備註：v5.0 原規格書以 v4.1 為基礎，後續依需求調整為以 v4.2（房貸體驗優化）為基礎重新建置，因此本版本同時包含 v4.2 與 v5.0 的所有變更。
+
+### Added
+- 📈 投資中心：新增獨立頁面（`page-investment`）與底部導覽項目，風格沿用既有設計系統
+- 完整 CRUD：投資類型（ETF／股票／基金／REITs／債券／其他）、名稱、持有數量（支援小數）、平均成本、最新價格（手動輸入，不串接任何 API）
+- 自動即時計算（不可手動輸入）：投資成本＝平均成本×持有數量；目前市值＝最新價格×持有數量；未實現損益＝市值－成本；報酬率＝損益÷成本×100%
+- 投資頁橫幅：加總投資成本／目前市值／未實現損益／報酬率
+- 首頁新增「📈 投資總覽」卡片，加總所有投資資料，無資料時顯示提示文字並提供快速新增連結
+- 投資清單依類型分組，每筆卡片顯示名稱、類型、持有數量、平均成本、最新價格、投資成本、目前市值、未實現損益、報酬率，提供編輯／刪除
+- Empty State：沿用 v4.0 建立的一致風格空資料提示卡
+- 新增獨立 localStorage key：`investments`
+
+### Changed
+- 首頁「總資產」／「淨資產」納入投資市值：`總資產 = 既有資產總和（現金＋股票/ETF＋不動產＋定存＋其他，不變）＋ 投資市值（新增）`
+- 資產頁「股票／ETF」類型的新增／編輯表單，以及資產頁該類型的列表區塊，新增提示訊息引導使用者改用投資中心管理，避免與投資中心重複計算總資產（純提示文字，不影響任何既有資料與計算）
+- 設定頁「清除所有資料」與開發工具「清除所有資料」，新增清除 `investments` key，確保「清除所有資料」名副其實涵蓋投資資料
+- 版本號更新為 5.0，所有頁面 Footer 同步更新
+- README 更新：新增投資中心說明、`investments` key 說明、已知限制與規格判斷段落
+
+### Compatibility
+- Mortgage Engine 未修改（逐一比對 `buildAmortizationSchedule`／`mortgageEngine`／`mortgagePrepaymentSimulation`／`isMortgageReady` 等核心函式，與 v4.1／v4.2 完全一致）
+- v4.2 新增的房貸剩餘本金 Auto／Manual 機制未修改（逐一比對 `getRemainingPrincipalMode`／`mortgageEngineAutoRemaining`／`syncAutoMortgagePrincipals`，與 v4.2 完全一致）；`onTypeChange()` 僅在 v4.2 版本尾端追加 3 行 ETF 提示切換邏輯，其餘房貸相關邏輯逐行比對未變動
+- 財務健康計算未修改（逐一比對 `scoreIndicator`／`renderHealthCard`／`renderHealthOverview` 等核心函式，與 v4.1 完全一致；注意：其內部計算仍只讀 `nw_assets`／`nw_debts`，不納入投資市值，故負債比等指標不受本版影響，也不會反映投資市值）
+- Goals 計算未修改（逐一比對 `getCurrentByType`／`getGoalCurrent`／`goalBarColor` 等核心函式，與 v4.1 完全一致；注意：「淨資產」目標進度同樣不納入投資市值）
+- Demo Mode、Onboarding 相關函式（`loadDemoData`／`getDemoDataset`／`isDemoMode`／`buildOwnData`／`startOnboarding`／`renderOnboarding`／`hasAnyData`）逐一比對，與 v4.1 完全一致，未修改
+- 既有 localStorage 結構（`nw_assets`／`nw_debts`／`nw_income`／`nw_expenses`／`nw_living_expense`／`nw_goals`／`nw_onboarding_completed`／`nw_demo_mode`）未修改，僅新增獨立的 `investments` key
+- 所有 v4.1／v4.2 既有功能（Hero Banner、Demo 模式、系統資訊、清除資料、Footer、房貸剩餘本金選填與每日自動更新、手機版錯誤訊息定位）未修改
+- 已完成健康檢查：Node.js 語法驗證、HTML div 標籤配對（334/334）、重複函式／常數名稱掃描、`renderAll()` 涵蓋率驗證、HTML↔JS ID／onclick 雙向交叉比對，皆通過；並對受保護的核心函式進行 v4.1／v4.2／v5.0 三版逐字元比對，確認完全一致
+- 已用 Node.js 模擬驗證：房貸 auto 模式剩餘本金與投資中心市值可同時正確計入首頁總資產（現金 100,000 元＋投資市值 92,300 元＝合計 192,300 元，驗證通過）
+
+### ⚠️ 規格判斷與已知限制（已與 Mable 確認）
+1. **總資產公式**：v5.0 規格書提供的公式（現金＋投資＋其他資產＋房屋）省略了「定存」。為避免影響既有資產功能，實作採「既有資產總和不變＋投資市值疊加」的方式，定存仍計入總資產。
+2. **與資產頁「股票／ETF」類型並存但不同步**：兩者是獨立機制，若同一筆持股在兩邊都輸入會被重複計算。本版本維持相容性、不強制遷移或刪除既有資料，僅新增提示引導改用投資中心；後續版本再評估是否整合或淘汰舊有 ETF 輸入方式。
+3. **與淨資產相關計算不同步**：財務健康分析、資產配置分析、Goals 淨資產目標，依規格「不可修改」維持不納入投資市值，可能與首頁頂部總資產／淨資產數字不一致。
+
+## v4.2 － Mortgage UX Improvement（房貸體驗優化）
+
+### Added
+- 房貸「剩餘本金」改為選填：新增／編輯房貸時可以留空，placeholder 顯示「留空將自動計算目前剩餘本金」，並在欄位下方新增提示說明
+- 自動計算剩餘本金：留空時，直接呼叫既有 Mortgage Engine（`mortgageEngine`／`buildAmortizationSchedule`），依原始貸款金額、年利率、貸款總期數、起貸日期、還款方式推算目前剩餘本金，未另外建立第二套公式、未使用簡化估算
+- 新增 `remainingPrincipalMode`（`auto`／`manual`）欄位：留空時記錄為 `auto`，手動輸入時記錄為 `manual`；舊資料（v4.1 以前建立、無此欄位）一律視為 `manual`，維持原本行為
+- 每日自動更新：每次載入儀表板時（`renderAll()` 開頭），自動重新計算所有 `auto` 模式房貸的剩餘本金並寫回，讓房貸餘額隨時間自然遞減；`manual` 模式完全不受影響，永遠使用者輸入值優先
+
+### Fixed（手機版）
+- 驗證失敗時，自動捲動到第一個錯誤欄位並 focus，套用於資產／負債新增編輯表單，以及 Goals／收入／固定支出／生活費表單
+- 錯誤訊息與輸入欄位新增 `scroll-margin`，避免被下方固定的儲存／取消按鈕遮住
+- Modal 底部安全間距（`padding-bottom`）由 16px 提高到 24px，加大安全區
+
+### Compatibility
+- Mortgage Engine 核心公式未修改（`buildAmortizationSchedule`／`mortgageEngine`／`simulatePayoff`／`mortgagePrepaymentSimulation`／`isMortgageReady` 逐字元比對，與 v4.1 完全一致）
+- 財務健康分數未修改（`scoreIndicator`／`renderHealthCard`／`renderHealthOverview` 等逐字元比對，與 v4.1 完全一致）
+- 房貸試算器、提前還款功能未修改（`itemHTML`／`simulatePrepay`／`renderMortgageSummary` 逐字元比對，與 v4.1 完全一致）
+- 資產負債計算未修改（`renderSummary`／`renderAssetPage`／`renderDebtPage`／`payLoanMonth` 逐字元比對，與 v4.1 完全一致）—— 新增的每日同步（`syncAutoMortgagePrincipals`）在這些函式讀取資料「之前」先把 auto 模式房貸的 `amount` 更新好，讓既有計算不必修改就能自動反映最新剩餘本金
+- Demo Mode、Onboarding、資料完整度等 v4.1 功能未修改（逐字元比對一致）
+- 舊資料完全相容：既有房貸（無 `remainingPrincipalMode` 欄位）預設視為 `manual`，行為與 v4.1 完全相同，不會被自動改寫
+- 已完成健康檢查：Node.js 語法驗證、HTML div 標籤配對、重複函式／常數名稱掃描、`renderAll()` 涵蓋率驗證、HTML↔JS ID／onclick 雙向交叉比對，皆通過；並針對受保護的核心函式進行 v4.1／v4.2 逐字元比對，確認完全一致
+- 已用 Node.js 模擬驗證：auto 模式在剩餘本金被竄改為異常值後，下次 `syncAutoMortgagePrincipals()` 會自動修正回引擎試算值；manual 模式完全不受同步影響
+
 ## v4.1 － Product Polish（產品化）
 
 ### Added
