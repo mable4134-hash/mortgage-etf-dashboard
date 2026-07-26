@@ -232,18 +232,27 @@ function syncAutoMortgagePrincipals(){
 }
 
 /* ══════════════════════════════════════════
-   房貸補貼機制（v5.1）
+   房貸補貼機制（v5.1 / v5.1.1 修正輸入介面）
    讓「每月可存金額」正確反映房貸月付金，並支援「部分房貸由預留資金補貼」的情境
    （例如增貸後預留活存補貼房貸），使用者薪資實際負擔的金額可能低於銀行扣款金額。
    完全沿用既有 Mortgage Engine 計算月付金，不建立第二套公式。
+   儲存欄位為 monthlyMortgageSubsidy；沒有此欄位（含 v5.0 以前、以及短暫存在於
+   v5.1 的舊欄位名稱 monthlySubsidy）的資料一律視為補貼 0 元，行為與之前版本相同。
 ══════════════════════════════════════════ */
 
-/** 單一房貸「補貼後實際負擔」＝房貸月付金－每月房貸補貼，最低不得小於 0。
- *  舊資料沒有 monthlySubsidy 欄位時，自動視為 0 元補貼，行為與 v5.0 完全相同。 */
+/** 單一房貸「補貼後實際負擔」＝房貸月付金－每月房貸補貼，最低不得小於 0。 */
+/** v5.1.1：讀取房貸的每月補貼金額。正式欄位為 monthlyMortgageSubsidy；
+ *  為相容 v5.1 曾使用過的欄位名稱 monthlySubsidy，若正式欄位不存在則回退讀取舊欄位；
+ *  兩者皆無時視為 0 元，不影響任何舊資料。 */
+function getMortgageSubsidyValue(item){
+  if(item.monthlyMortgageSubsidy !== undefined) return parseFloat(item.monthlyMortgageSubsidy) || 0;
+  return parseFloat(item.monthlySubsidy) || 0; // 相容 v5.1 舊欄位名稱
+}
+
 function getMortgageActualBurden(item){
   if(!isMortgageReady(item)) return 0;
   const monthlyPayment = mortgageEngine(getMortgageLoanInput(item)).monthlyPayment;
-  const subsidy = parseFloat(item.monthlySubsidy) || 0;
+  const subsidy = getMortgageSubsidyValue(item);
   return Math.max(0, monthlyPayment - subsidy);
 }
 
@@ -254,7 +263,7 @@ function getMortgageSubsidySummary(){
   let totalMonthlyPayment=0, totalSubsidy=0, totalActualBurden=0;
   mortgages.forEach(d=>{
     const monthlyPayment = mortgageEngine(getMortgageLoanInput(d)).monthlyPayment;
-    const subsidy = parseFloat(d.monthlySubsidy) || 0;
+    const subsidy = getMortgageSubsidyValue(d);
     totalMonthlyPayment += monthlyPayment;
     totalSubsidy += subsidy;
     totalActualBurden += Math.max(0, monthlyPayment - subsidy);
@@ -292,8 +301,8 @@ const KEY_DEMO='nw_demo_mode';
 const KEY_INV='investments';
 
 /* ══ 系統資訊（v5.0，純展示用途） ══ */
-const APP_VERSION='5.1';
-const APP_UPDATE_DATE='2026-07-24';
+const APP_VERSION='5.1.1';
+const APP_UPDATE_DATE='2026-07-25';
 const GITHUB_REPO_URL='https://github.com/mable4134-hash/mortgage-etf-dashboard';
 
 /* ══ 工具 ══ */
@@ -2088,7 +2097,7 @@ function editItem(mode,index){
   el('fTotalMonths').value=item.totalMonths||'';
   el('fStartDate').value=item.startDate||'';
   if(el('fRepayMethod'))el('fRepayMethod').value=item.repaymentMethod||'equalPayment';
-  if(el('fMonthlySubsidy'))el('fMonthlySubsidy').value=item.monthlySubsidy||'';
+  if(el('fMonthlySubsidy'))el('fMonthlySubsidy').value=getMortgageSubsidyValue(item)||'';
   onTypeChange();
   // v4.2：auto 模式的房貸，欄位保持空白（避免重新儲存時被誤判為手動輸入），
   // 但以 placeholder 顯示目前自動計算的剩餘本金供參考
@@ -2199,7 +2208,7 @@ function saveItem(){
     if(startDate)item.startDate=startDate;
     item.repaymentMethod=repaymentMethod;
     // v5.1：每月房貸補貼，留空或 0 則不寫入（讀取端一律以 parseFloat(...)||0 處理，等同 0 元，維持向下相容）
-    if(!isNaN(monthlySubsidy)&&monthlySubsidy>0)item.monthlySubsidy=monthlySubsidy;
+    if(!isNaN(monthlySubsidy)&&monthlySubsidy>0)item.monthlyMortgageSubsidy=monthlySubsidy;
   }
 
   // v4.2：依剩餘本金欄位是否留空，決定 auto／manual 模式（功能三：手動輸入優先，功能四：模式標記）
