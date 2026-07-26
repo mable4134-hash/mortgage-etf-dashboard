@@ -352,7 +352,7 @@
     <!-- 版本標記 -->
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.1</div>
+      <div class="app-footer-version">Version 5.1.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink1" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -384,7 +384,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.1</div>
+      <div class="app-footer-version">Version 5.1.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink2" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -426,7 +426,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.1</div>
+      <div class="app-footer-version">Version 5.1.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink3" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -468,7 +468,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.1</div>
+      <div class="app-footer-version">Version 5.1.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink6" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -588,7 +588,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.1</div>
+      <div class="app-footer-version">Version 5.1.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink4" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -723,7 +723,7 @@
 
     <div class="app-footer">
       <div class="app-footer-title">Personal Finance Dashboard</div>
-      <div class="app-footer-version">Version 5.1</div>
+      <div class="app-footer-version">Version 5.1.1</div>
       <div class="app-footer-license">MIT License</div>
       <a class="app-footer-github" href="#" id="footerGithubLink5" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -863,6 +863,11 @@
         <label class="form-label" for="fTotalMonths">貸款總期數（月）</label>
         <input class="form-input" id="fTotalMonths" type="number" placeholder="例：360" min="1" inputmode="numeric"/>
       </div>
+      <div class="form-group" id="fMonthlySubsidyGroup" style="display:none">
+        <label class="form-label" for="fMonthlySubsidy">每月房貸補貼（元）</label>
+        <input class="form-input" id="fMonthlySubsidy" type="number" placeholder="例如：10000" min="0" inputmode="numeric"/>
+        <div class="form-note">若有預留資金補貼房貸，可輸入每月補貼金額。例如：10000 代表每月有 10,000 元不是由薪資支付，留空預設為 0 元</div>
+      </div>
       <div class="form-group" id="fStartDateGroup" style="display:none">
         <label class="form-label" for="fStartDate">起貸日期</label>
         <input class="form-input" id="fStartDate" type="date"/>
@@ -874,11 +879,6 @@
           <option value="equalPrincipal">本金平均攤還（等額本金）</option>
         </select>
         <div class="form-note">每月應繳、已還本金、已付利息將依此自動試算</div>
-      </div>
-      <div class="form-group" id="fMonthlySubsidyGroup" style="display:none">
-        <label class="form-label" for="fMonthlySubsidy">每月房貸補貼（元，選填）</label>
-        <input class="form-input" id="fMonthlySubsidy" type="number" placeholder="例：10000" min="0" inputmode="numeric"/>
-        <div class="form-note">若有預留資金補貼房貸，可輸入每月補貼金額。例如：10000 代表每月有 10,000 元不是由薪資支付，留空預設為 0 元</div>
       </div>
       <div class="form-group" id="fMonthlyGroup" style="display:none">
         <label class="form-label" for="fMonthly">每月應繳金額（元，選填）</label>
