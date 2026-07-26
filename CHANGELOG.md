@@ -4,6 +4,22 @@
 
 ---
 
+## v5.1.1 － 修正房貸補貼輸入介面
+
+### Fixed
+- 新增／編輯房貸 Modal 補上「每月房貸補貼（元）」輸入欄位（v5.1 首頁已顯示補貼資訊，但當時欄位放置在較不易發現的位置；本版本依需求調整順序並確認全流程可用）
+- 欄位放置順序調整為：貸款總期數 → 每月房貸補貼 → 起貸日期 → 還款方式
+- 編輯房貸時正確帶入目前已儲存的補貼金額；重新儲存後首頁「房貸月付／房貸補貼／薪資實際負擔」三項數字立即同步更新
+
+### Changed
+- 房貸補貼資料儲存欄位由 `monthlySubsidy` 正式更名為 `monthlyMortgageSubsidy`，新增 `getMortgageSubsidyValue()` 統一讀取，優先讀取新欄位，若新欄位不存在則回退讀取 v5.1 的舊欄位名稱 `monthlySubsidy`，確保 v5.1 期間建立的資料不會遺失
+
+### Compatibility
+- Mortgage Engine、房貸試算、提前還款、財務健康分數、Goals、投資中心、Demo Mode、Onboarding 及所有 v5.1 既有功能未修改（逐一比對核心函式，與 v5.1 完全一致）
+- 舊資料完全相容：三種情境皆已用 Node.js 模擬驗證 —— (1) 沒有任何補貼欄位（v5.0 以前）視為補貼 0 元；(2) 僅有 v5.1 舊欄位 `monthlySubsidy` 時正確回退讀取；(3) 兩種欄位同時存在時，以新欄位 `monthlyMortgageSubsidy` 為準
+- 本版本僅調整 `getMortgageActualBurden`／`getMortgageSubsidySummary`／`editItem`／`saveItem` 四個函式，並新增 `getMortgageSubsidyValue` 輔助函式；其餘所有函式逐字元比對與 v5.1 完全一致
+- 已完成健康檢查：Node.js 語法驗證、HTML div 標籤配對（352/352）、重複函式名稱掃描、`renderAll()` 涵蓋率驗證、HTML↔JS ID／onclick 雙向交叉比對，皆通過
+
 ## v5.1 － Cashflow Optimization（現金流優化：房貸補貼機制）
 
 ### Added
