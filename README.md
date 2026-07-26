@@ -38,7 +38,7 @@
 | Key | 用途 | 資料型態 |
 |---|---|---|
 | `nw_assets` | 資產清單（現金、股票／ETF、不動產、定存、其他） | Array |
-| `nw_debts` | 負債清單（房貸、車貸、信貸、信用卡、其他）。房貸含 `originalAmount`（原始貸款金額）、`totalMonths`（貸款總期數）、`startDate`（起貸日期）、`repaymentMethod`（還款方式：equalPayment 本息平均攤還／equalPrincipal 本金平均攤還）、`remainingPrincipalMode`（v4.2 新增，`auto`／`manual`：留空剩餘本金即為 `auto`，由系統依 Mortgage Engine 每日自動計算並寫回 `amount`；手動輸入即為 `manual`，`amount` 永遠以使用者輸入為準；v4.1 以前建立、無此欄位的舊資料視為 `manual`）、`monthlySubsidy`（v5.1 新增，選填，每月房貸補貼金額；無此欄位的舊資料一律視為 0 元），每月應繳與已還期數改由 Mortgage Engine 自動計算，不再存於資料中。車貸／信貸維持 `monthlyPayment`（每月應繳）與 `remainingMonths`（剩餘期數）手動維護，目前尚不支援補貼欄位 | Array |
+| `nw_debts` | 負債清單（房貸、車貸、信貸、信用卡、其他）。房貸含 `originalAmount`（原始貸款金額）、`totalMonths`（貸款總期數）、`startDate`（起貸日期）、`repaymentMethod`（還款方式：equalPayment 本息平均攤還／equalPrincipal 本金平均攤還）、`remainingPrincipalMode`（v4.2 新增，`auto`／`manual`：留空剩餘本金即為 `auto`，由系統依 Mortgage Engine 每日自動計算並寫回 `amount`；手動輸入即為 `manual`，`amount` 永遠以使用者輸入為準；v4.1 以前建立、無此欄位的舊資料視為 `manual`）、`monthlyMortgageSubsidy`（v5.1.1 正式欄位名稱，選填，每月房貸補貼金額；讀取時會相容 v5.1 曾短暫使用的舊欄位名稱 `monthlySubsidy`；兩者皆無的舊資料一律視為 0 元），每月應繳與已還期數改由 Mortgage Engine 自動計算，不再存於資料中。車貸／信貸維持 `monthlyPayment`（每月應繳）與 `remainingMonths`（剩餘期數）手動維護，目前尚不支援補貼欄位 | Array |
 | `nw_income` | 每月收入清單 | Array |
 | `nw_expenses` | 每月固定支出清單 | Array |
 | `nw_living_expense` | 每月生活費（單一數字，不分類） | Number |
@@ -55,6 +55,12 @@ app.js
 ```
 
 單一頁面應用（SPA），純前端運作，無後端、無 API、無外部函式庫依賴，所有資料僅儲存在使用者瀏覽器的 localStorage。
+
+## Version 5.1.1 更新內容（修正房貸補貼輸入介面）
+補上 v5.1 缺漏的輸入入口，讓「每月房貸補貼」功能完整可用：
+- 新增／編輯房貸 Modal 補上「每月房貸補貼（元）」欄位，順序為：貸款總期數 → 每月房貸補貼 → 起貸日期 → 還款方式
+- 編輯房貸時正確帶入已儲存的補貼金額，重新儲存後首頁立即同步更新
+- 儲存欄位正式更名為 `monthlyMortgageSubsidy`，並相容讀取 v5.1 期間使用過的舊欄位名稱 `monthlySubsidy`，資料不會遺失
 
 ## Version 5.1 更新內容（Cashflow Optimization，房貸補貼機制）
 本版本改善每月現金流計算，讓房貸月付金正確納入每月支出，並支援「部分房貸由預留資金補貼」的情境（例如增貸後預留活存補貼房貸）：
