@@ -4,6 +4,24 @@
 
 ---
 
+## v5.5 － Refactor Edition（架構重構版）
+
+### ♻️ Refactor
+- 完成專案模組化：`app.js`（2335 行）拆分為 5 個 JS 模組（`core.js`／`mortgage.js`／`entities.js`／`finance.js`／`app.js`）；`style.css`（452 行）拆分為 4 個 CSS 模組（`base.css`／`dashboard.css`／`features.css`／`responsive.css`）。初版原規劃拆為 12+12 個更細的檔案，依 Mable 回饋（檔案數過多、日常維護與上傳不便）合併為目前的粒度，同樣保持模組化與高內聚、低耦合，僅檔案數量與分組方式調整
+- 所有函式以「純搬移」方式拆分，逐一比對搬移前後每個函式的原始碼字元，確認完全一致，未修改任何邏輯／公式／計算結果
+- 整理共用函式集中至 `utils.js`（格式化、DOM 存取、表單錯誤提示）與 `storage.js`（LocalStorage 存取與所有 key 定義）
+- `renderAll()` 統一收斂於 `app.js`，作為唯一的渲染入口，避免跨模組互相呼叫造成依賴混亂
+
+### 本版本不新增任何新功能、不修改 UI、不修改任何公式、不修改 localStorage 格式
+
+### Compatibility
+- Mortgage Engine、財務健康、投資中心、Goals、Demo Mode、Onboarding 邏輯完全未修改（逐字元比對）
+- localStorage 完全相容 v5.0／v5.1／v5.1.1，包含 `monthlyMortgageSubsidy`／`monthlySubsidy`（相容讀取）／Auto／Manual 模式皆正常運作
+- 已完成健康檢查：Node.js 語法驗證（單一模組＋合併後）、HTML div 標籤配對（352/352）、無重複函式、`renderAll()` 涵蓋完整、HTML↔JS 交叉比對皆通過
+- 已用 Node.js 合併全部 12 個模組模擬執行，驗證房貸引擎、房貸補貼、投資中心、Goals 等核心計算函式皆正常運作且結果正確
+
+詳細的資料夾架構、模組職責、拆分統計與相容性確認，請見本次交付說明。
+
 ## v5.1.1 － 修正房貸補貼輸入介面
 
 ### Fixed
