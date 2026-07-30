@@ -1,0 +1,219 @@
+/* ══════════════════════════════════════════
+   config.js（v5.5 重構）
+   全域靜態設定：類型清單、標籤對照、版面 meta、系統版本資訊
+   無任何依賴，必須最先載入
+══════════════════════════════════════════ */
+
+const ASSET_TYPES=[
+  {value:'cash',    label:'現金 / 活存', icon:'💵', cls:'icon--cash'},
+  {value:'etf',     label:'股票 / ETF',  icon:'📈', cls:'icon--etf'},
+  {value:'house',   label:'不動產',       icon:'🏠', cls:'icon--house'},
+  {value:'deposit', label:'定期存款',     icon:'🏦', cls:'icon--deposit'},
+  {value:'other',   label:'其他資產',     icon:'📦', cls:'icon--other'},
+];
+
+const DEBT_TYPES=[
+  {value:'mortgage',label:'房貸',     icon:'🏠', cls:'icon--mortgage'},
+  {value:'carloan', label:'車貸',     icon:'🚗', cls:'icon--carloan'},
+  {value:'personal',label:'信貸',     icon:'💳', cls:'icon--personal'},
+  {value:'credit',  label:'信用卡',   icon:'💰', cls:'icon--credit'},
+  {value:'other',   label:'其他負債', icon:'📋', cls:'icon--debt-other'},
+];
+/* 貸款類負債：這三種類型會有貸款資訊卡
+   - 房貸（mortgage）：v3.0 起改用 Mortgage Engine 完整攤還計算（見下方區塊）
+   - 車貸／信貸（carloan／personal）：維持 v2.4 的簡易模式（手動維護每月應繳／剩餘期數）
+   之後若車貸／信貸要比照房貸升級完整攤還功能，直接沿用 Mortgage Engine 架構即可，
+   不要在其他地方寫死這幾個字串，一律引用 LOAN_TYPES／SIMPLE_LOAN_TYPES */
+
+const LOAN_TYPES=['mortgage','carloan','personal'];
+
+const SIMPLE_LOAN_TYPES=['carloan','personal'];
+
+/* ══════════════════════════════════════════
+   Mortgage Engine（v3.0）
+   房貸攤還計算獨立封裝於此，未來車貸／信貸若需完整攤還功能可直接沿用。
+   計算基礎：月利率 = 年利率 ÷ 12；計算過程不中途四捨五入，只在畫面顯示時四捨五入至整數元。
+══════════════════════════════════════════ */
+
+const REPAY_METHOD_LABEL = { equalPayment:'本息平均攤還', equalPrincipal:'本金平均攤還' };
+
+/**
+ * 建立完整攤還排程（每期本金／利息／應繳金額／期末剩餘本金）
+ * 支援「本息平均攤還」與「本金平均攤還」兩種正式銀行公式，非簡化估算。
+ */
+
+const PAGE_META={
+  home: {title:'資產負債儀表板', sub:'Net Worth Tracker'},
+  asset:{title:'資產管理',       sub:'Asset Management'},
+  debt: {title:'負債管理',       sub:'Debt Management'},
+  investment:{title:'投資中心',  sub:'Investment Center'},
+  goals:{title:'財務目標',       sub:'Financial Goals'},
+  tools:{title:'財務工具',       sub:'Financial Tools'},
+};
+
+const FH_WEIGHTS = { debtRatio: 0.4, expRatio: 0.3, savRate: 0.3 };
+
+/**
+ * 單項指標評分（0~100）
+ * @param {number} value  - 實際數值（比率，0~1）
+ * @param {'debt'|'exp'|'sav'} type
+ */
+
+const ALLOC_BAR_COLOR = {
+  cash:    'var(--green)',
+  etf:     'var(--blue)',
+  house:   'var(--purple)',
+  deposit: 'var(--orange)',
+  other:   'var(--t2)',
+};
+
+const ALLOC_ORDER = ['cash','etf','house','deposit','other'];
+
+const ALLOC_CONCENTRATION_THRESHOLD = 0.7; // 70%
+
+
+const INVESTMENT_TYPES=[
+  {value:'etf',   label:'ETF',   icon:'📈', cls:'icon--inv-etf'},
+  {value:'stock', label:'股票',  icon:'📊', cls:'icon--inv-stock'},
+  {value:'fund',  label:'基金',  icon:'🧺', cls:'icon--inv-fund'},
+  {value:'reits', label:'REITs', icon:'🏢', cls:'icon--inv-reits'},
+  {value:'bond',  label:'債券',  icon:'📜', cls:'icon--inv-bond'},
+  {value:'other', label:'其他',  icon:'📦', cls:'icon--inv-other'},
+];
+
+const GOAL_TYPES = {
+  networth:  { label:'淨資產',      icon:'🏠', cls:'icon--house'   },
+  cash:      { label:'現金／活存',   icon:'💰', cls:'icon--cash'    },
+  etf:       { label:'股票／ETF',    icon:'📈', cls:'icon--etf'     },
+  deposit:   { label:'定存',         icon:'🏦', cls:'icon--deposit' },
+  emergency: { label:'緊急預備金',   icon:'🚨', cls:'icon--other'   },
+  custom:    { label:'自訂',         icon:'🎯', cls:'icon--cash'    },
+};
+
+/**
+ * 依目標類型自動讀取目前金額
+ * 讀取現有 localStorage，不新增任何 key
+ * custom（自訂目標）不自動計算，回傳 null，由使用者自行輸入
+ */
+
+const INCOME_TYPES={
+  salary:   {label:'薪資', icon:'💼', cls:'icon--cash'},
+  bonus:    {label:'獎金', icon:'🎁', cls:'icon--deposit'},
+  rent:     {label:'租金', icon:'🏠', cls:'icon--house'},
+  dividend: {label:'股息', icon:'📈', cls:'icon--etf'},
+  interest: {label:'利息', icon:'🏦', cls:'icon--deposit'},
+  parttime: {label:'兼職', icon:'⚡', cls:'icon--other'},
+  other:    {label:'其他', icon:'📋', cls:'icon--debt-other'},
+};
+
+const EXPENSE_TYPES={
+  mortgage: {label:'房貸',   icon:'🏠', cls:'icon--mortgage'},
+  carloan:  {label:'車貸',   icon:'🚗', cls:'icon--carloan'},
+  personal: {label:'信貸',   icon:'💳', cls:'icon--personal'},
+  credit:   {label:'信用卡', icon:'💰', cls:'icon--credit'},
+  insurance:{label:'保險',   icon:'🔰', cls:'icon--other'},
+  telecom:  {label:'電信',   icon:'📱', cls:'icon--cash'},
+  utility:  {label:'水電',   icon:'💡', cls:'icon--deposit'},
+  other:    {label:'其他',   icon:'📋', cls:'icon--debt-other'},
+};
+
+const NAME_PH={cash:'例：第一銀行活存、iLEO',etf:'例：0050 元大台灣50',house:'例：台北市房屋',deposit:'例：一銀定存 2 年期',mortgage:'例：玉山房貸',carloan:'例：中租車貸',personal:'例：國泰信貸',credit:'例：台新信用卡'};
+
+
+const APP_VERSION='5.5';
+
+const APP_UPDATE_DATE='2026-07-27';
+
+const GITHUB_REPO_URL='https://github.com/mable4134-hash/mortgage-etf-dashboard';
+
+/* ══ 工具 ══ */
+/* ══════════════════════════════════════════
+   storage.js（v5.5 重構）
+   LocalStorage 存取層與所有 localStorage key 定義
+   無任何依賴
+══════════════════════════════════════════ */
+
+const LS={
+  get(k,fb=[]){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},
+};
+
+const KEY_A='nw_assets', KEY_D='nw_debts';
+
+const KEY_LE='nw_living_expense';
+/* 新手引導旗標（v4.0）：僅記錄「使用者是否已看過／完成過首次引導」，
+   不屬於任何財務資料，不影響既有 nw_assets／nw_debts／... 等資料結構 */
+
+const KEY_OB='nw_onboarding_completed';
+/* Demo 模式旗標（v4.1）：僅標記目前畫面上的資料是否為一鍵載入的示範資料，
+   不屬於財務資料本身，Demo 資料實際上仍寫入既有的 nw_assets／nw_debts／... 等 key，
+   不新增任何獨立的示範資料結構 */
+
+const KEY_DEMO='nw_demo_mode';
+/* 投資中心（v5.0）：獨立資料 key「investments」，不使用 nw_ 前綴、不共用既有 nw_assets 結構，
+   與資產頁既有的「股票／ETF」類型是兩套獨立機制，不會互相同步 */
+
+const KEY_INV='investments';
+
+/* ══ 系統資訊（v5.0，純展示用途） ══ */
+
+const KEY_G = 'nw_goals';
+
+
+const KEY_I='nw_income';
+
+/* ══ 渲染收入區塊 ══ */
+
+const KEY_E='nw_expenses';
+
+/* ══ 渲染支出頁 ══ */
+/* ══════════════════════════════════════════
+   utils.js（v5.5 重構）
+   共用工具函式：格式化、DOM 存取、表單錯誤提示
+   依賴：config.js（getType 使用 ASSET_TYPES／DEBT_TYPES）
+══════════════════════════════════════════ */
+
+function fmt(n){if(n===null||n===undefined||isNaN(n))return'--';return new Intl.NumberFormat('zh-TW').format(Math.round(n))}
+
+function fmtPct(r){if(r===null||isNaN(r))return null;const p=(r*100).toFixed(2);return r>=0?`+${p}%`:`${p}%`}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+/** 產生一致風格的「空資料提示卡」（v4.0），取代單純的空白文字，說明用途並提供 CTA 按鈕 */
+
+function emptyStateHTML(icon, title, benefits, ctaText, ctaOnclick){
+  return `<div class="empty-state-card">
+    <div class="empty-state-icon">${icon}</div>
+    <div class="empty-state-title">${title}</div>
+    <div class="empty-state-benefits">
+      <div class="empty-state-benefits-label">建立後即可用於：</div>
+      <ul>${benefits.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+    </div>
+    <button class="empty-state-cta" onclick="${ctaOnclick}">${esc(ctaText)}</button>
+  </div>`;
+}
+
+function el(id){return document.getElementById(id)}
+
+function setText(id,t){const e=el(id);if(e)e.textContent=t}
+
+function getType(mode,val){return(mode==='asset'?ASSET_TYPES:DEBT_TYPES).find(t=>t.value===val)||(mode==='asset'?ASSET_TYPES:DEBT_TYPES).at(-1)}
+
+/* ══ 頁面切換 ══ */
+
+function scrollAndFocusField(fieldId){
+  const field = el(fieldId);
+  if(!field) return;
+  field.scrollIntoView({behavior:'smooth', block:'center'});
+  setTimeout(()=>{ field.focus(); }, 300);
+}
+
+function showFieldErr(id,msg,fieldId){const e=el(id);if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show');if(fieldId)scrollAndFocusField(fieldId)}
+
+function clearErr(id){const e=el(id);if(!e)return;e.textContent='';e.classList.remove('show')}
+
+/* ══ Modal ══ */
+
+function showErr(msg,fieldId){const e=el('fError');if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show');if(fieldId)scrollAndFocusField(fieldId)}
+
+
