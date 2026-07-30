@@ -1,7 +1,0 @@
-/* ══════════════════════════════════════
-   responsive.css（v5.5 重構）
-   所有 @media 響應式規則集中於此，必須最後載入，
-   以確保在 CSS 層疊順序中能正確覆蓋前面各模組的預設樣式
-══════════════════════════════════════ */
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media(min-width:600px){.page{padding:24px 24px calc(var(--nav-h)+24px)}.summary-net-value{font-size:clamp(40px,6vw,56px);word-break:normal;letter-spacing:-2px}.summary-block-value{font-size:clamp(16px,2.5vw,20px);word-break:normal}}
