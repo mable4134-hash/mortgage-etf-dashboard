@@ -1,1 +1,296 @@
+/* ══════════════════════════════════════════
+   mortgage.js（v5.5 重構）
+   Mortgage Engine、剩餘本金 Auto／Manual、房貸補貼、提前還款試算
+   依賴：storage.js、utils.js
+══════════════════════════════════════════ */
+
+function buildAmortizationSchedule(originalAmount, annualRatePct, totalMonths, method){
+  const P = parseFloat(originalAmount) || 0;
+  const n = parseInt(totalMonths, 10) || 0;
+  const r = (parseFloat(annualRatePct) || 0) / 100 / 12; // 月利率
+  const schedule = [];
+  if (P <= 0 || n <= 0) return schedule;
+
+  if (method === 'equalPrincipal') {
+    // 本金平均攤還（等額本金）：每期本金固定，利息隨剩餘本金遞減
+    const principalPortion = P / n;
+    let remaining = P;
+    for (let i = 0; i < n; i++) {
+      const interestPortion = remaining * r;
+      const actualPrincipal = Math.min(principalPortion, remaining);
+      remaining = Math.max(0, remaining - actualPrincipal);
+      schedule.push({ payment: actualPrincipal + interestPortion, principalPortion: actualPrincipal, interestPortion, remaining });
+    }
+  } else {
+    // 本息平均攤還（等額本息）：M = P × r × (1+r)^n ÷ ((1+r)^n − 1)
+    const factor = Math.pow(1 + r, n);
+    const M = r === 0 ? P / n : P * r * factor / (factor - 1);
+    let remaining = P;
+    for (let i = 0; i < n; i++) {
+      const interestPortion = remaining * r;
+      let principalPortion = M - interestPortion;
+      if (i === n - 1) principalPortion = remaining; // 最後一期修正尾差，避免累積誤差
+      principalPortion = Math.max(0, Math.min(principalPortion, remaining));
+      remaining = Math.max(0, remaining - principalPortion);
+      schedule.push({ payment: principalPortion + interestPortion, principalPortion, interestPortion, remaining });
+    }
+  }
+  return schedule;
+}
+
+/** 計算起貸日至今的完整月數（未滿一個月不計入），用來推算已還期數 */
+
+function monthsBetween(startDate, endDate){
+  if (!startDate) return 0;
+  const start = new Date(startDate);
+  const end = endDate || new Date();
+  if (isNaN(start.getTime())) return 0;
+  let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  if (end.getDate() < start.getDate()) months -= 1;
+  return Math.max(0, months);
+}
+
+/**
+ * Mortgage Engine 主入口：依貸款條件計算完整房貸現況
+ * @param {object} loan - { originalAmount, currentPrincipal, rate, totalMonths, startDate, repaymentMethod }
+ * 回傳：每月應繳金額／已還期數／剩餺期數／已還本金／已付利息／還款進度(%) 等
+ */
+
+function mortgageEngine(loan){
+  const originalAmount = parseFloat(loan.originalAmount) || 0;
+  const currentPrincipal = parseFloat(loan.currentPrincipal);
+  const totalMonths = parseInt(loan.totalMonths, 10) || 0;
+  const method = loan.repaymentMethod === 'equalPrincipal' ? 'equalPrincipal' : 'equalPayment';
+
+  const schedule = buildAmortizationSchedule(originalAmount, loan.rate, totalMonths, method);
+  const hasSchedule = schedule.length > 0;
+
+  const paidMonths = hasSchedule ? Math.min(monthsBetween(loan.startDate), totalMonths) : 0;
+  const remainingMonths = hasSchedule ? Math.max(0, totalMonths - paidMonths) : 0;
+
+  const currentPeriod = hasSchedule
+    ? (schedule[Math.min(paidMonths, totalMonths - 1)] || schedule[schedule.length - 1])
+    : null;
+  const monthlyPayment = currentPeriod ? currentPeriod.payment : 0;
+
+  // 剩餺本金以使用者維護的欄位為準（可手動修正，會與理論排程略有落差，屬正常情況）
+  const scheduleRemaining = hasSchedule ? (schedule[Math.max(0, paidMonths - 1)]?.remaining ?? originalAmount) : originalAmount;
+  const remainingPrincipal = !isNaN(currentPrincipal) ? currentPrincipal : scheduleRemaining;
+  const paidPrincipal = Math.max(0, originalAmount - remainingPrincipal);
+
+  // 已付利息：採理論攤還排程中，累積到「已還期數」的利息加總
+  const paidInterest = hasSchedule
+    ? schedule.slice(0, paidMonths).reduce((s, p) => s + p.interestPortion, 0)
+    : 0;
+
+  const progressPct = totalMonths > 0 ? Math.max(0, Math.min(100, Math.round(paidMonths / totalMonths * 100))) : 0;
+
+  return {
+    originalAmount, remainingPrincipal, paidPrincipal, paidInterest,
+    monthlyPayment, paidMonths, remainingMonths, totalMonths, progressPct, schedule,
+  };
+}
+
+/**
+ * 依固定月付金／固定本金逐期試算，直到還清或超過安全上限為止
+ * method==='equalPrincipal' 時 fixedParam 為每期固定本金，否則為固定月付金
+ */
+
+function simulatePayoff(principal, monthlyRate, method, fixedParam, capMonths){
+  let remaining = principal;
+  let totalInterest = 0;
+  let months = 0;
+  const hardCap = Math.max((capMonths || 0) * 2, 1200); // 防止極端參數造成無窮迴圈
+  while (remaining > 0.5 && months < hardCap) {
+    const interest = remaining * monthlyRate;
+    let principalPortion;
+    if (method === 'equalPrincipal') {
+      principalPortion = Math.min(fixedParam, remaining);
+    } else {
+      principalPortion = fixedParam - interest;
+      if (principalPortion <= 0) return { months: Infinity, totalInterest: Infinity, payoff: false };
+      principalPortion = Math.min(principalPortion, remaining);
+    }
+    totalInterest += interest;
+    remaining -= principalPortion;
+    months++;
+  }
+  return { months, totalInterest, payoff: remaining <= 0.5 };
+}
+
+/**
+ * 提前還款試算（v3.0）：僅試算，不修改任何原始資料
+ * 情境：現在立刻多繳一筆金額直接沖抵本金，之後仍按原本的月付金／攤還方式走完剩餘期數，
+ * 比較「有提前還款」與「沒有提前還款」兩種情境的總利息與總期數差異。
+ */
+
+function mortgagePrepaymentSimulation(loan, prepayAmount){
+  const engine = mortgageEngine(loan);
+  const extra = parseFloat(prepayAmount) || 0;
+  if (extra <= 0 || engine.remainingMonths <= 0 || engine.remainingPrincipal <= 0) {
+    return { valid: false, interestSaved: 0, monthsSaved: 0 };
+  }
+  const r = (parseFloat(loan.rate) || 0) / 100 / 12;
+  const method = loan.repaymentMethod === 'equalPrincipal' ? 'equalPrincipal' : 'equalPayment';
+  const fixedParam = method === 'equalPrincipal'
+    ? (parseFloat(loan.originalAmount) || 0) / (parseInt(loan.totalMonths, 10) || 1)
+    : engine.monthlyPayment;
+
+  const original = simulatePayoff(engine.remainingPrincipal, r, method, fixedParam, engine.remainingMonths);
+  const newPrincipal = Math.max(0, engine.remainingPrincipal - extra);
+  const withPrepay = simulatePayoff(newPrincipal, r, method, fixedParam, engine.remainingMonths);
+
+  if (!original.payoff || !withPrepay.payoff) {
+    return { valid: false, interestSaved: 0, monthsSaved: 0 };
+  }
+
+  return {
+    valid: true,
+    interestSaved: Math.max(0, original.totalInterest - withPrepay.totalInterest),
+    monthsSaved: Math.max(0, original.months - withPrepay.months),
+  };
+}
+
+/** 判斷這筆房貸是否已填妥完整條件，足以啟用 Mortgage Engine 自動試算 */
+
+function isMortgageReady(item){
+  return !isNaN(parseFloat(item.originalAmount)) && parseFloat(item.originalAmount) > 0
+    && !isNaN(parseInt(item.totalMonths, 10)) && parseInt(item.totalMonths, 10) > 0
+    && !!item.startDate;
+}
+/** 將負債資料轉成 Mortgage Engine 所需的輸入格式 */
+
+function getMortgageLoanInput(item){
+  return {
+    originalAmount: item.originalAmount,
+    currentPrincipal: item.amount,
+    rate: item.rate,
+    totalMonths: item.totalMonths,
+    startDate: item.startDate,
+    repaymentMethod: item.repaymentMethod,
+  };
+}
+
+/* ══════════════════════════════════════════
+   房貸剩餘本金 Auto / Manual 模式（v4.2）
+   完全沿用既有 Mortgage Engine（buildAmortizationSchedule／mortgageEngine），
+   不建立第二套公式、不使用簡化估算。
+   Mortgage Engine 原本就支援「currentPrincipal 留空時，改用攤還排程推算的剩餘本金」，
+   這裡只是明確地以此方式呼叫，並把結果同步寫回 localStorage 供既有的
+   資產負債計算／財務健康／房貸試算等既有函式（皆未修改）直接讀取使用。
+══════════════════════════════════════════ */
+
+/** 取得這筆房貸目前的剩餘本金模式：'auto' 或 'manual'。
+ *  舊資料（v4.1 以前建立、無此欄位）一律視為 'manual'，維持原本行為，確保向下相容。 */
+
+function getRemainingPrincipalMode(item){
+  return item.remainingPrincipalMode === 'auto' ? 'auto' : 'manual';
+}
+
+/** 直接呼叫既有 Mortgage Engine，強制忽略 item.amount，改用攤還排程推算目前剩餘本金
+ *  （與 mortgageEngine() 內建的 fallback 邏輯完全相同，僅明確化呼叫方式，非新公式） */
+
+function mortgageEngineAutoRemaining(item){
+  const loan = getMortgageLoanInput(item);
+  loan.currentPrincipal = undefined; // 強制走攤還排程計算，不受舊值影響
+  return mortgageEngine(loan).remainingPrincipal;
+}
+
+/** 每次載入儀表板時執行一次：把所有「auto 模式」且資料已填妥的房貸，
+ *  依今天日期重新計算剩餘本金並寫回 localStorage，讓房貸餘額自然隨時間遞減。
+ *  manual 模式的房貸完全不受影響，維持使用者輸入值。 */
+
+function syncAutoMortgagePrincipals(){
+  const debts = LS.get(KEY_D);
+  let changed = false;
+  debts.forEach(d=>{
+    if(d.type==='mortgage' && getRemainingPrincipalMode(d)==='auto' && isMortgageReady(d)){
+      const newAmount = mortgageEngineAutoRemaining(d);
+      if(d.amount !== newAmount){ d.amount = newAmount; changed = true; }
+    }
+  });
+  if(changed) LS.set(KEY_D, debts);
+}
+
+/* ══════════════════════════════════════════
+   房貸補貼機制（v5.1 / v5.1.1 修正輸入介面）
+   讓「每月可存金額」正確反映房貸月付金，並支援「部分房貸由預留資金補貼」的情境
+   （例如增貸後預留活存補貼房貸），使用者薪資實際負擔的金額可能低於銀行扣款金額。
+   完全沿用既有 Mortgage Engine 計算月付金，不建立第二套公式。
+   儲存欄位為 monthlyMortgageSubsidy；沒有此欄位（含 v5.0 以前、以及短暫存在於
+   v5.1 的舊欄位名稱 monthlySubsidy）的資料一律視為補貼 0 元，行為與之前版本相同。
+══════════════════════════════════════════ */
+
+/** 單一房貸「補貼後實際負擔」＝房貸月付金－每月房貸補貼，最低不得小於 0。 */
+/** v5.1.1：讀取房貸的每月補貼金額。正式欄位為 monthlyMortgageSubsidy；
+ *  為相容 v5.1 曾使用過的欄位名稱 monthlySubsidy，若正式欄位不存在則回退讀取舊欄位；
+ *  兩者皆無時視為 0 元，不影響任何舊資料。 */
+
+function getMortgageSubsidyValue(item){
+  if(item.monthlyMortgageSubsidy !== undefined) return parseFloat(item.monthlyMortgageSubsidy) || 0;
+  return parseFloat(item.monthlySubsidy) || 0; // 相容 v5.1 舊欄位名稱
+}
+
+
+function getMortgageActualBurden(item){
+  if(!isMortgageReady(item)) return 0;
+  const monthlyPayment = mortgageEngine(getMortgageLoanInput(item)).monthlyPayment;
+  const subsidy = getMortgageSubsidyValue(item);
+  return Math.max(0, monthlyPayment - subsidy);
+}
+
+/** 彙總目前所有房貸的月付金／補貼／補貼後實際負擔，供首頁現金流卡片「🏦 房貸補貼」區塊顯示。
+ *  僅房貸資料已填妥（isMortgageReady）者才納入計算；完全沒有房貸資料時三項皆為 0。 */
+
+function getMortgageSubsidySummary(){
+  const mortgages = LS.get(KEY_D).filter(d=>d.type==='mortgage' && isMortgageReady(d));
+  let totalMonthlyPayment=0, totalSubsidy=0, totalActualBurden=0;
+  mortgages.forEach(d=>{
+    const monthlyPayment = mortgageEngine(getMortgageLoanInput(d)).monthlyPayment;
+    const subsidy = getMortgageSubsidyValue(d);
+    totalMonthlyPayment += monthlyPayment;
+    totalSubsidy += subsidy;
+    totalActualBurden += Math.max(0, monthlyPayment - subsidy);
+  });
+  return { count: mortgages.length, totalMonthlyPayment, totalSubsidy, totalActualBurden };
+}
+
+/** 所有貸款的「補貼後實際月負擔」加總，用於首頁每月可存金額公式。
+ *  目前僅房貸支援補貼欄位。架構上以「逐筆貸款計算後加總」的方式撰寫（而非寫死單一房貸），
+ *  未來若車貸／信貸（SIMPLE_LOAN_TYPES）也支援補貼欄位，可在此比照房貸的方式一併加總，
+ *  不需更動這個函式的呼叫方式或首頁現金流的公式。 */
+
+function getTotalLoanActualBurden(){
+  let total = getMortgageSubsidySummary().totalActualBurden;
+  // 預留擴充：SIMPLE_LOAN_TYPES（車貸／信貸）目前僅有既有的 monthlyPayment 欄位、尚未支援補貼欄位，
+  // 故本版本不納入車貸／信貸的月付金，避免與固定支出頁既有的車貸／信貸紀錄產生新的重複計算問題。
+  return total;
+}
+
+
+
+function simulatePrepay(index){
+  const list = LS.get(KEY_D);
+  const item = list[index];
+  if(!item) return;
+  const inputEl = el('prepayInput_'+index);
+  const resultEl = el('prepayResult_'+index);
+  if(!inputEl || !resultEl) return;
+  const extra = parseFloat(inputEl.value);
+  if(isNaN(extra) || extra <= 0){
+    resultEl.innerHTML = '<div class="mortgage-prepay-error">請輸入有效的提前還款金額（大於 0）</div>';
+    return;
+  }
+  const sim = mortgagePrepaymentSimulation(getMortgageLoanInput(item), extra);
+  if(!sim.valid){
+    resultEl.innerHTML = '<div class="mortgage-prepay-error">目前貸款條件無法試算，請確認原始貸款金額、總期數、年利率、起貸日期是否都已填寫。</div>';
+    return;
+  }
+  resultEl.innerHTML = `
+    <div class="mortgage-prepay-stat"><span>預估可節省利息</span><span class="val--green">${fmt(sim.interestSaved)} 元</span></div>
+    <div class="mortgage-prepay-stat"><span>預估可縮短期數</span><span class="val--green">${sim.monthsSaved} 期</span></div>
+  `;
+}
+
+/* ══ 渲染首頁概況（v1.4） ══ */
 
