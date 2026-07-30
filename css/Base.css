@@ -1,1 +1,185 @@
 
+/* ══════════════════════════════════════
+   base.css（v5.5 重構）
+   CSS 變數、全域重置、通用元素樣式、通用小型按鈕、動畫
+   所有其他 CSS 檔案皆依賴此處定義的 CSS 變數（:root），必須最先載入
+══════════════════════════════════════ */
+:root{
+  --bg:#0D1117;--card:#161B22;--stat:#1C2230;--input:#1C2230;
+  --border:#1F2937;--border2:#252D3D;
+  --t1:#E6EDF3;--t2:#8B949E;--tm:#484F58;
+  --green:#22D3A8;--gbg:#0A2820;
+  --orange:#F97316;--obg:#2D1A0A;
+  --yellow:#EAB308;--ybg:#2D2A0A;
+  --red:#EF4444;--rbg:#2D1010;
+  --blue:#38BDF8;--bbg:#0C1E30;
+  --purple:#A78BFA;--pbg:#1C1535;
+  --nav-h:64px;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font-family:var(--font);font-size:15px;line-height:1.6;background:var(--bg);color:var(--t1);min-height:100dvh;
+  background-image:linear-gradient(rgba(34,211,168,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,168,.012) 1px,transparent 1px);
+  background-size:32px 32px}
+h1,h2,h3{font-weight:700;line-height:1.2}
+button{font-family:var(--font);cursor:pointer;border:none;background:none;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:var(--r8)}
+
+/* 通用小型圖示按鈕（編輯／刪除），跨資產／負債／Goals／投資中心共用 */
+.btn-sm{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r8);font-size:15px;background:var(--stat);border:1px solid var(--border);color:var(--t2);transition:all .15s;touch-action:manipulation}
+.btn-sm:hover{border-color:var(--green);color:var(--t1)}
+.btn-sm.del:hover{border-color:var(--red);color:var(--red)}
+
+/* 通用色彩輔助 class */
+.val--green{color:var(--green)}
+.val--red{color:var(--red)}
+.val--purple{color:var(--purple)}
+.val--orange{color:var(--orange)}
+.val--blue{color:var(--blue)}
+
+/* ══ 動畫 ══ */
+.fade-in{animation:fadeIn .25s ease forwards}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* ══════════════════════════════════════
+   layout.css（v5.5 重構）
+   頁面外殼：Header、Page 容器、Bottom Nav、Footer
+   這些元件出現在每一個頁面，屬於 App Shell，與任何單一功能模組無關
+══════════════════════════════════════ */
+
+/* ══ Header ══ */
+.header{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 16px}
+.header-inner{display:flex;align-items:center;justify-content:space-between;max-width:680px;margin:0 auto}
+.header-brand{display:flex;align-items:center;gap:10px}
+.header-logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#064E3B,#047857);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 12px rgba(34,211,168,.2)}
+.header-title{font-size:15px;font-weight:800;letter-spacing:-.3px}
+.header-sub{font-size:11px;color:var(--t2)}
+.header-date{font-size:11px;color:var(--t2);text-align:right;line-height:1.5}
+
+/* ══ Pages ══ */
+.page{display:none;min-height:calc(100dvh - 57px - var(--nav-h));padding:16px 16px calc(var(--nav-h) + 24px)}
+.page.active{display:block}
+.page-inner{max-width:680px;margin:0 auto}
+
+/* page-header subtitle */
+.page-subtitle{font-size:12px;color:var(--t2);margin-top:2px}
+
+/* ══ Bottom Nav ══ */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(13,17,23,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);height:var(--nav-h);display:flex;align-items:stretch;padding-bottom:env(safe-area-inset-bottom)}
+.nav-inner{display:flex;width:100%;max-width:680px;margin:0 auto}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--tm);font-size:10px;font-weight:600;letter-spacing:.3px;transition:color .15s;touch-action:manipulation}
+.nav-btn.active{color:var(--green)}
+.nav-btn.active .nav-icon{filter:drop-shadow(0 0 6px var(--green));transform:scale(1.1)}
+.nav-icon{font-size:22px;line-height:1;transition:transform .15s}
+
+/* ══ 版本標記（舊版遺留，v4.1 起已由 Footer 取代，目前 HTML 未使用，僅保留樣式避免任何舊頁面殘留參照失效） ══ */
+.ver-badge{text-align:center;font-size:10px;color:var(--tm);letter-spacing:.5px;padding:20px 0 4px}
+
+/* ══════════════════════════════════════
+   Footer（v4.1，取代原本的 ver-badge）
+══════════════════════════════════════ */
+.app-footer{text-align:center;padding:24px 0 8px;display:flex;flex-direction:column;gap:3px}
+.app-footer-title{font-size:12px;font-weight:700;color:var(--t2);letter-spacing:.3px}
+.app-footer-version{font-size:10px;color:var(--tm)}
+.app-footer-license{font-size:10px;color:var(--tm)}
+.app-footer-github{font-size:11px;color:var(--green);font-weight:600;margin-top:4px;text-decoration:none}
+/* ══════════════════════════════════════
+   modal.css（v5.5 重構）
+   共用 Modal 外殼、表單元件、提示框、空資料提示卡、新增按鈕
+   這些元件由資產／負債／投資中心／Goals／收入／支出等多個模組共用
+══════════════════════════════════════ */
+
+/* ══ Modal ══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-width:680px;padding-bottom:max(env(safe-area-inset-bottom),24px);transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0)}
+.modal-overlay.open .modal{transform:translateY(0);transition:transform .3s cubic-bezier(.33,1,.68,1)}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:12px auto 0}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px}
+.modal-title{font-size:16px;font-weight:800}
+.modal-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--r8);background:var(--stat);color:var(--t2);font-size:18px;touch-action:manipulation}
+.modal-body{padding:0 20px 8px;display:flex;flex-direction:column;gap:14px;max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-padding-bottom:16px}
+.modal-actions{display:flex;gap:10px;padding:16px 20px 0}
+
+/* ══ 表單 ══ */
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:12px;color:var(--t2);font-weight:500;letter-spacing:.3px}
+.form-input{background:var(--input);border:1px solid var(--border);border-radius:var(--r8);color:var(--t1);font-family:var(--font);font-size:16px;font-variant-numeric:tabular-nums;padding:12px 14px;width:100%;transition:border-color .15s,box-shadow .15s;-moz-appearance:textfield;scroll-margin:24px}
+.form-input::-webkit-outer-spin-button,.form-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.form-input::placeholder{color:var(--tm);font-size:14px}
+.form-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(34,211,168,.1)}
+.form-select{background:var(--input);border:1px solid var(--border);border-radius:var(--r8);color:var(--t1);font-family:var(--font);font-size:15px;padding:12px 14px;width:100%;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238B949E' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.form-select:focus{outline:none;border-color:var(--green)}
+.form-note{font-size:11px;color:var(--tm)}
+.form-error{font-size:12px;color:var(--red);background:var(--rbg);border-radius:var(--r8);padding:0;max-height:0;overflow:hidden;transition:all .2s;scroll-margin:16px}
+.form-error.show{padding:8px 12px;max-height:60px}
+.btn-save{flex:2;padding:14px;background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);font-size:15px;font-weight:700;border-radius:var(--r12);border:1px solid rgba(34,211,168,.2);touch-action:manipulation}
+.btn-save:active{opacity:.85}
+.btn-cancel{flex:1;padding:14px;background:var(--stat);color:var(--t2);font-size:14px;font-weight:600;border-radius:var(--r12);border:1px solid var(--border);touch-action:manipulation}
+.btn-cancel:active{opacity:.8}
+
+/* 提示框（v4.2）：用於非錯誤性質的中性提醒（房貸剩餘本金自動計算說明、v5.0 引導改用投資中心、v5.1 房貸補貼重複計算提醒），
+   跨資產／負債／固定支出模組共用 */
+.info-hint-box{font-size:11px;color:var(--t2);line-height:1.6;background:var(--bbg);border:1px solid rgba(56,189,248,.2);border-radius:var(--r8);padding:10px 12px}
+.info-hint-box a,.info-hint-box .info-hint-link{color:var(--blue);font-weight:600;cursor:pointer;text-decoration:none}
+
+/* ══ 新增按鈕 ══ */
+.btn-add{width:100%;padding:13px;background:transparent;border:1px dashed var(--border);border-radius:var(--r12);color:var(--t2);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;touch-action:manipulation;margin-top:4px}
+.btn-add:hover,.btn-add:active{border-color:var(--green);color:var(--green)}
+
+/* ══════════════════════════════════════
+   空資料提示卡（v4.0，取代單純的空白文字）
+══════════════════════════════════════ */
+.empty-state-card{background:var(--card);border:1px dashed var(--border);border-radius:var(--r16);padding:32px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty-state-icon{font-size:40px;line-height:1}
+.empty-state-title{font-size:15px;font-weight:800;color:var(--t1)}
+.empty-state-benefits{width:100%;text-align:left;background:var(--stat);border-radius:var(--r12);padding:12px 16px;margin-top:4px}
+.empty-state-benefits-label{font-size:12px;color:var(--t2);font-weight:600;margin-bottom:6px}
+.empty-state-benefits ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+.empty-state-benefits li{font-size:12px;color:var(--t2);padding-left:14px;position:relative}
+.empty-state-benefits li::before{content:'•';position:absolute;left:0;color:var(--green)}
+.empty-state-cta{margin-top:8px;padding:12px 28px;border-radius:var(--r12);background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);font-size:13px;font-weight:700;border:1px solid rgba(34,211,168,.2);touch-action:manipulation}
+.empty-state-cta:active{opacity:.85}
+
+/* ══ 空白提示（舊版遺留，目前 HTML 未使用，僅保留樣式避免任何舊頁面殘留參照失效） ══ */
+.empty-hint{font-size:12px;color:var(--tm);text-align:center;padding:16px 0 8px}
+
+/* ══ 空白佔位頁（舊版遺留，目前 HTML 未使用，僅保留樣式避免任何舊頁面殘留參照失效） ══ */
+.wip-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:16px;text-align:center;padding:32px}
+.wip-icon{font-size:56px;line-height:1}
+.wip-title{font-size:20px;font-weight:800;color:var(--t1)}
+.wip-sub{font-size:14px;color:var(--t2);line-height:1.6;max-width:260px}
+.wip-badge{font-size:11px;font-weight:700;color:var(--orange);background:var(--obg);border:1px solid rgba(249,115,22,.2);padding:4px 12px;border-radius:20px;letter-spacing:.5px}
+/* ══════════════════════════════════════
+   settings.css（v5.5 重構）
+   ⚙️ 設定／系統資訊、🧪 開發工具（僅供開發／驗收測試用途）
+══════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   開發工具（v2.3，僅開發／驗收測試用途）
+══════════════════════════════════════ */
+.dev-card{border:1px dashed rgba(249,115,22,.35);border-radius:var(--r16);overflow:hidden;margin-bottom:16px}
+.dev-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--stat);color:var(--orange);font-size:13px;font-weight:700;letter-spacing:.3px;touch-action:manipulation}
+.dev-toggle-arrow{font-size:12px;color:var(--t2);transition:transform .2s}
+.dev-body{padding:14px 16px 16px;background:var(--card);display:flex;flex-direction:column;gap:10px}
+.dev-warning{font-size:11px;color:var(--t2);line-height:1.5;background:var(--obg);border:1px solid rgba(249,115,22,.2);border-radius:var(--r8);padding:8px 10px}
+.btn-dev{width:100%;padding:12px;border-radius:var(--r12);font-size:13px;font-weight:700;touch-action:manipulation;border:1px solid var(--border)}
+.btn-dev--load{background:var(--stat);color:var(--t1)}
+.btn-dev--load:active{opacity:.85}
+.btn-dev--danger{background:var(--rbg);color:var(--red);border-color:rgba(239,68,68,.25)}
+.btn-dev--danger:active{opacity:.85}
+
+/* ══════════════════════════════════════
+   ⚙️ 設定 / 系統資訊（v4.1）
+══════════════════════════════════════ */
+.settings-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px 18px}
+.settings-card-title{font-size:14px;font-weight:800;color:var(--t1);margin-bottom:12px}
+.settings-group-label{font-size:11px;color:var(--t2);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}
+.settings-info-list{background:var(--stat);border-radius:var(--r12);overflow:hidden}
+.settings-info-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border2);text-decoration:none;color:inherit}
+.settings-info-row:last-child{border-bottom:none}
+.settings-info-label{font-size:12px;color:var(--t2);font-weight:600}
+.settings-info-value{font-size:12px;color:var(--t1);font-weight:700;font-variant-numeric:tabular-nums}
+.settings-info-arrow{font-size:14px;color:var(--tm)}
+.settings-info-link:active{background:rgba(255,255,255,.03)}
