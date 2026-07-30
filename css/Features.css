@@ -1,1 +1,152 @@
 
+/* ══════════════════════════════════════
+   assets.css（v5.5 重構）
+   資產／負債共用的清單元件：Item Card、資產分組、資產頁／負債頁橫幅、類型圖示背景色
+   （對應 assets.js：itemHTML／renderAssetPage 等共用資產／負債 CRUD 渲染邏輯）
+══════════════════════════════════════ */
+
+/* ══ Item Card ══ */
+.item-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.item-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.item-body{flex:1;min-width:0}
+.item-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-meta{font-size:11px;color:var(--t2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-right{text-align:right;flex-shrink:0}
+.item-value{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.item-sub{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:1px}
+.item-actions{display:flex;gap:4px;flex-shrink:0}
+
+/* ══ 資產分組（資產頁／負債頁／投資頁共用的分組清單樣式） ══ */
+.asset-group{margin-bottom:16px}
+.asset-group-header{display:flex;align-items:center;justify-content:space-between;padding:0 4px;margin-bottom:8px}
+.asset-group-label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--t2);letter-spacing:.4px;text-transform:uppercase}
+.asset-group-icon{font-size:14px}
+.asset-group-total{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ══ 資產頁橫幅 ══ */
+.asset-banner{background:linear-gradient(135deg,#0D1F1A 0%,#111827 100%);border:1px solid rgba(34,211,168,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
+.asset-banner-sub{font-size:11px;color:var(--t2);margin-top:2px}
+
+/* ══ 負債頁橫幅 ══ */
+.debt-banner{background:linear-gradient(135deg,#1F0D0D 0%,#111827 100%);border:1px solid rgba(239,68,68,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
+
+/* ══ 資產／負債類型圖示背景色 ══ */
+.icon--cash{background:rgba(34,211,168,.12)}
+.icon--etf{background:rgba(56,189,248,.12)}
+.icon--house{background:rgba(167,139,250,.12)}
+.icon--deposit{background:rgba(249,115,22,.12)}
+.icon--other{background:rgba(139,148,158,.12)}
+.icon--mortgage{background:rgba(239,68,68,.12)}
+.icon--carloan{background:rgba(239,68,68,.12)}
+.icon--personal{background:rgba(239,68,68,.12)}
+.icon--credit{background:rgba(249,115,22,.12)}
+.icon--debt-other{background:rgba(139,148,158,.12)}
+/* ══════════════════════════════════════
+   liabilities.css（v5.5 重構）
+   負債／房貸專屬樣式：貸款資訊卡、每月貸款支出橫幅、房貸試算引擎明細卡、
+   提前還款試算、首頁🏦房貸概況
+   （對應 liabilities.js：renderDebtPage／renderMortgageSummary／payLoanMonth 等）
+══════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   貸款中心（v2.4）：貸款資訊卡與每月貸款支出橫幅
+══════════════════════════════════════ */
+.loan-monthly-banner{background:linear-gradient(135deg,#1F1200 0%,#111827 100%);border:1px solid rgba(249,115,22,.15);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
+.item-card--loan{flex-direction:column;align-items:stretch;gap:0}
+.item-card-top{display:flex;align-items:center;gap:12px}
+.loan-detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.loan-detail-item{display:flex;flex-direction:column;gap:2px}
+.loan-detail-label{font-size:10px;color:var(--tm);letter-spacing:.3px}
+.loan-detail-value{font-size:13px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.loan-pay-btn{margin-top:12px;width:100%;padding:10px;border-radius:var(--r12);background:var(--stat);border:1px solid var(--border);color:var(--t1);font-size:12px;font-weight:700;touch-action:manipulation}
+.loan-pay-btn:active{opacity:.85}
+.loan-pay-btn:disabled{opacity:.5;color:var(--tm)}
+
+/* ══════════════════════════════════════
+   房貸試算引擎（v3.0）
+══════════════════════════════════════ */
+.item-card--mortgage .loan-detail{grid-template-columns:1fr 1fr}
+.mortgage-progress{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)}
+.mortgage-progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:6px}
+.mortgage-progress-label span:last-child{font-weight:700;color:var(--t1)}
+.mortgage-incomplete-hint{font-size:11px;color:var(--tm);line-height:1.5;background:var(--stat);border-radius:var(--r8);padding:8px 10px;margin-top:12px}
+.mortgage-prepay{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)}
+.mortgage-prepay-title{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.mortgage-prepay-row{display:flex;gap:8px}
+.mortgage-prepay-row .form-input{flex:1;padding:10px 12px;font-size:14px}
+.btn-sm-action{padding:10px 16px;border-radius:var(--r8);background:linear-gradient(135deg,#064E3B,#047857);color:var(--green);font-size:13px;font-weight:700;border:1px solid rgba(34,211,168,.2);touch-action:manipulation;white-space:nowrap}
+.btn-sm-action:active{opacity:.85}
+.mortgage-prepay-result{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.mortgage-prepay-stat{display:flex;justify-content:space-between;font-size:12px;color:var(--t2)}
+.mortgage-prepay-stat span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+.mortgage-prepay-error{font-size:11px;color:var(--red)}
+.mortgage-prepay-hint{font-size:10px;color:var(--tm);margin-top:8px;line-height:1.5}
+
+/* 首頁：🏦 房貸概況 */
+.mortgage-summary-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:18px}
+.mortgage-summary-progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:8px}
+.mortgage-summary-progress-label span:last-child{font-weight:800;color:var(--t1);font-size:13px}
+.mortgage-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;margin-top:16px}
+.mortgage-summary-item-label{font-size:10px;color:var(--tm);letter-spacing:.3px;margin-bottom:2px}
+.mortgage-summary-item-value{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+/* ══════════════════════════════════════
+   investment.css（v5.5 重構）
+   📈 投資中心（Investment Center）專屬樣式：投資橫幅、投資類型圖示背景色
+   （對應 investment.js）
+══════════════════════════════════════ */
+.investment-banner{background:linear-gradient(135deg,#0C1E30 0%,#111827 100%);border:1px solid rgba(56,189,248,.18);border-radius:var(--r20);padding:20px 24px;margin-bottom:16px}
+.icon--inv-etf{background:rgba(56,189,248,.12)}
+.icon--inv-stock{background:rgba(34,211,168,.12)}
+.icon--inv-fund{background:rgba(167,139,250,.12)}
+.icon--inv-reits{background:rgba(249,115,22,.12)}
+.icon--inv-bond{background:rgba(234,179,8,.12)}
+.icon--inv-other{background:rgba(139,148,158,.12)}
+/* ══════════════════════════════════════
+   health.css（v5.5 重構）
+   📊 財務健康分析專屬樣式：健康分數卡、五項指標、規則式建議清單
+   （對應 health.js）
+══════════════════════════════════════ */
+.fh-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden}
+.fh-grade-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;letter-spacing:.3px}
+.fh-score-wrap{padding:18px 18px 14px}
+.fh-score-label{font-size:11px;color:var(--t2);letter-spacing:.5px;margin-bottom:4px}
+.fh-score-row{display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
+.fh-score-value{font-size:clamp(32px,9vw,44px);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px;line-height:1}
+.fh-score-unit{font-size:13px;color:var(--t2);font-weight:500}
+.fh-bar-bg{height:6px;background:var(--stat);border-radius:99px;overflow:hidden}
+.fh-bar-fill{height:100%;border-radius:99px;width:0%;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.fh-metrics{display:flex;flex-direction:column;gap:0}
+.fh-metric{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;border-top:1px solid var(--border2)}
+.fh-metric-left{display:flex;align-items:center;gap:10px}
+.fh-metric-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fh-metric-name{font-size:13px;font-weight:600;color:var(--t1)}
+.fh-metric-hint{font-size:10px;color:var(--tm);margin-top:1px}
+.fh-metric-value{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+
+/* ══════════════════════════════════════
+   財務健康 AI 建議（v3.1）
+══════════════════════════════════════ */
+.health-suggest{padding:14px 18px 16px;border-top:1px solid var(--border2)}
+.health-suggest-title{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.health-suggest-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.health-suggest-list li{font-size:12px;color:var(--t2);line-height:1.5}
+.health-suggest-empty{color:var(--tm)}
+/* ══════════════════════════════════════
+   goal.css（v5.5 重構）
+   🎯 財務目標（Goals）頁專屬樣式
+   （對應 goals.js）
+══════════════════════════════════════ */
+.goal-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r16);padding:16px;margin-bottom:10px}
+.goal-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.goal-card-left{display:flex;align-items:center;gap:10px}
+.goal-card-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.goal-card-name{font-size:14px;font-weight:700;color:var(--t1)}
+.goal-card-note{font-size:11px;color:var(--tm);margin-top:1px}
+.goal-card-pct{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.goal-bar-bg{height:8px;background:var(--stat);border-radius:99px;overflow:hidden;margin-bottom:10px}
+.goal-bar-fill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.goal-card-footer{display:flex;justify-content:space-between;align-items:center}
+.goal-amounts{font-size:11px;color:var(--t2);font-variant-numeric:tabular-nums}
+.goal-actions{display:flex;gap:4px}
+.goal-remain{font-size:11px;color:var(--t2);margin-top:8px;font-variant-numeric:tabular-nums}
+.goal-remain--done{color:var(--green);font-weight:700}
