@@ -1,1 +1,968 @@
+/* ══════════════════════════════════════════
+   investment.js（v5.5 重構）
+   📈 投資中心：ETF／股票／基金／REITs／債券／其他，投資市值與未實現損益
+   依賴：storage.js、utils.js、config.js
+══════════════════════════════════════════ */
+
+function getInvType(val){ return INVESTMENT_TYPES.find(t=>t.value===val) || INVESTMENT_TYPES.at(-1); }
+
+/** 單筆投資的自動計算：投資成本／目前市值／未實現損益／報酬率（全部即時計算，不可手動輸入） */
+
+function investmentItemCalc(item){
+  const quantity = parseFloat(item.quantity) || 0;
+  const avgCost  = parseFloat(item.avgCost)   || 0;
+  const price    = parseFloat(item.latestPrice) || 0;
+  const cost        = avgCost * quantity;
+  const marketValue = price * quantity;
+  const pl          = marketValue - cost;
+  const returnRate  = cost > 0 ? (pl / cost * 100) : null;
+  return { quantity, avgCost, price, cost, marketValue, pl, returnRate };
+}
+
+/** 所有投資資料自動加總（用於首頁「📈 投資總覽」卡片與投資頁橫幅） */
+
+function getInvestmentTotals(){
+  const list = LS.get(KEY_INV);
+  let totalCost=0, totalMarketValue=0;
+  list.forEach(inv=>{
+    const c = investmentItemCalc(inv);
+    totalCost += c.cost;
+    totalMarketValue += c.marketValue;
+  });
+  const totalPL = totalMarketValue - totalCost;
+  const returnRate = totalCost > 0 ? (totalPL / totalCost * 100) : null;
+  return { count: list.length, totalCost, totalMarketValue, totalPL, returnRate };
+}
+
+
+function fmtReturnRate(rate){
+  if (rate === null || isNaN(rate)) return '--';
+  return (rate >= 0 ? '+' : '') + rate.toFixed(2) + '%';
+}
+
+/** 產生單筆投資項目卡片 HTML */
+
+function investmentItemHTML(item, index){
+  const t = getInvType(item.type);
+  const c = investmentItemCalc(item);
+  const plColor = c.pl >= 0 ? 'var(--green)' : 'var(--red)';
+  return `<div class="item-card item-card--loan fade-in">
+    <div class="item-card-top">
+      <div class="item-icon ${t.cls}">${t.icon}</div>
+      <div class="item-body">
+        <div class="item-name">${esc(item.name)||t.label}</div>
+        <div class="item-meta">${t.label} · 持有 ${c.quantity} 單位</div>
+      </div>
+      <div class="item-right">
+        <div class="item-value val--blue">${fmt(c.marketValue)} 元</div>
+        <div class="item-sub" style="color:${plColor}">${fmtReturnRate(c.returnRate)}（${c.pl>=0?'+':''}${fmt(c.pl)}）</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-sm" onclick="editInvestment(${index})">✎</button>
+        <button class="btn-sm del" onclick="deleteInvestment(${index})">✕</button>
+      </div>
+    </div>
+    <div class="loan-detail">
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">持有數量</div>
+        <div class="loan-detail-value">${c.quantity}</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">平均成本</div>
+        <div class="loan-detail-value">${fmt(c.avgCost)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">最新價格</div>
+        <div class="loan-detail-value">${fmt(c.price)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">投資成本</div>
+        <div class="loan-detail-value">${fmt(c.cost)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">目前市值</div>
+        <div class="loan-detail-value val--blue">${fmt(c.marketValue)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">未實現損益</div>
+        <div class="loan-detail-value" style="color:${plColor}">${c.pl>=0?'+':''}${fmt(c.pl)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">報酬率</div>
+        <div class="loan-detail-value" style="color:${plColor}">${fmtReturnRate(c.returnRate)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/** 渲染投資頁：橫幅總計＋依類型分組列表；沒有資料時顯示 Empty State */
+
+function renderInvestmentPage(){
+  const list = LS.get(KEY_INV);
+  const totals = getInvestmentTotals();
+
+  setText('invBannerMarketValue', fmt(totals.totalMarketValue));
+  setText('invBannerCost', fmt(totals.totalCost));
+  const plEl = el('invBannerPL');
+  if(plEl){
+    plEl.textContent = (totals.totalPL>=0?'+':'') + fmt(totals.totalPL) + ' 元';
+    plEl.style.color = totals.count ? (totals.totalPL>=0?'var(--green)':'var(--red)') : 'var(--t1)';
+  }
+  setText('invBannerReturnRate', totals.count ? '報酬率 '+fmtReturnRate(totals.returnRate) : '--');
+
+  const c = el('investmentPageList');
+  if(!c) return;
+  if(!list.length){
+    c.innerHTML = emptyStateHTML('📈','尚未建立任何投資',['投資成本','市值','損益','報酬率'],'➕ 新增第一筆投資','openInvestmentModal()');
+    return;
+  }
+
+  const ORDER=['etf','stock','fund','reits','bond','other'];
+  const grouped={};
+  list.forEach((inv,i)=>{
+    const k=inv.type||'other';
+    if(!grouped[k])grouped[k]=[];
+    grouped[k].push({...inv,_idx:i});
+  });
+
+  c.innerHTML = ORDER.filter(k=>grouped[k]).map(k=>{
+    const t = getInvType(k);
+    const items = grouped[k];
+    const subtotal = items.reduce((s,inv)=>s+investmentItemCalc(inv).marketValue,0);
+    return `<div class="asset-group">
+      <div class="asset-group-header">
+        <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
+        <div class="asset-group-total val--blue">${fmt(subtotal)} 元</div>
+      </div>
+      ${items.map(inv=>investmentItemHTML(inv,inv._idx)).join('')}
+    </div>`;
+  }).join('');
+}
+
+/** 首頁「📈 投資總覽」卡片：所有投資資料自動加總 */
+
+function renderHomeInvestmentSummary(){
+  const totals = getInvestmentTotals();
+  const c = el('homeInvestSummary');
+  if(!c) return;
+  if(!totals.count){
+    c.innerHTML = '<div class="overview-empty">尚未新增任何投資 · <span style="color:var(--green);cursor:pointer" onclick="goTo(\'investment\')">立即新增 ›</span></div>';
+    return;
+  }
+  const plColor = totals.totalPL>=0?'var(--green)':'var(--red)';
+  c.innerHTML = `<div class="mortgage-summary-grid" style="margin-top:0">
+    <div class="mortgage-summary-item">
+      <div class="mortgage-summary-item-label">投資成本</div>
+      <div class="mortgage-summary-item-value">${fmt(totals.totalCost)}</div>
+    </div>
+    <div class="mortgage-summary-item">
+      <div class="mortgage-summary-item-label">目前市值</div>
+      <div class="mortgage-summary-item-value val--blue">${fmt(totals.totalMarketValue)}</div>
+    </div>
+    <div class="mortgage-summary-item">
+      <div class="mortgage-summary-item-label">未實現損益</div>
+      <div class="mortgage-summary-item-value" style="color:${plColor}">${totals.totalPL>=0?'+':''}${fmt(totals.totalPL)}</div>
+    </div>
+    <div class="mortgage-summary-item">
+      <div class="mortgage-summary-item-label">報酬率</div>
+      <div class="mortgage-summary-item-value" style="color:${plColor}">${fmtReturnRate(totals.returnRate)}</div>
+    </div>
+  </div>`;
+}
+
+/* ══ 投資 Modal（CRUD） ══ */
+
+let _invEditIdx=-1;
+
+
+function openInvestmentModal(){
+  _invEditIdx=-1;
+  el('invType').value='etf';
+  el('invName').value='';
+  el('invQuantity').value='';
+  el('invAvgCost').value='';
+  el('invPrice').value='';
+  clearErr('invError');
+  setText('investmentModalTitle','新增投資');
+  el('investmentOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>el('invName').focus(),320);
+}
+
+
+function editInvestment(index){
+  const list=LS.get(KEY_INV);
+  const item=list[index]; if(!item) return;
+  _invEditIdx=index;
+  el('invType').value=item.type||'etf';
+  el('invName').value=item.name||'';
+  el('invQuantity').value=item.quantity||'';
+  el('invAvgCost').value=item.avgCost||'';
+  el('invPrice').value=item.latestPrice||'';
+  clearErr('invError');
+  setText('investmentModalTitle','編輯投資');
+  el('investmentOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+
+function closeInvestmentModal(){
+  el('investmentOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+
+function handleInvestmentOverlayClick(e){
+  if(e.target===el('investmentOverlay')) closeInvestmentModal();
+}
+
+
+function saveInvestment(){
+  const type = el('invType').value;
+  const name = el('invName').value.trim();
+  const quantity = parseFloat(el('invQuantity').value);
+  const avgCost = parseFloat(el('invAvgCost').value);
+  const latestPrice = parseFloat(el('invPrice').value);
+
+  if(!name){ showFieldErr('invError','請輸入名稱','invName'); return; }
+  if(isNaN(quantity)||quantity<=0){ showFieldErr('invError','請輸入有效持有數量（> 0）','invQuantity'); return; }
+  if(isNaN(avgCost)||avgCost<0){ showFieldErr('invError','請輸入有效平均成本（≥ 0）','invAvgCost'); return; }
+  if(isNaN(latestPrice)||latestPrice<0){ showFieldErr('invError','請輸入有效最新價格（≥ 0）','invPrice'); return; }
+
+  const item = { type, name, quantity, avgCost, latestPrice };
+  const list = LS.get(KEY_INV);
+  if(_invEditIdx>=0) list[_invEditIdx]=item; else list.push(item);
+  LS.set(KEY_INV, list);
+  closeInvestmentModal();
+  renderInvestmentPage();
+  renderHomeInvestmentSummary();
+  renderSummary(); // v5.0 資產同步：投資市值變動會影響首頁總資產／淨資產
+}
+
+
+function deleteInvestment(index){
+  const list=LS.get(KEY_INV);
+  if(!list[index]) return;
+  if(!confirm(`確定刪除「${list[index].name||'此筆投資'}」？`)) return;
+  list.splice(index,1);
+  LS.set(KEY_INV, list);
+  renderInvestmentPage();
+  renderHomeInvestmentSummary();
+  renderSummary();
+}
+
+/* ══════════════════════════════════════════
+   goals.js（v5.5 重構）
+   財務目標（Goals）CRUD 與 Render
+   依賴：storage.js、utils.js、config.js
+══════════════════════════════════════════ */
+
+function getCurrentByType(type) {
+  const assets  = LS.get(KEY_A);
+  const debts   = LS.get(KEY_D);
+  const totalA  = assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  const totalD  = debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  const cashTotal    = assets.filter(a=>a.type==='cash').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  const depositTotal = assets.filter(a=>a.type==='deposit').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+
+  if (type === 'networth')  return totalA - totalD;
+  if (type === 'cash')      return cashTotal;
+  if (type === 'etf')       return assets.filter(a=>a.type==='etf').reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  if (type === 'deposit')   return depositTotal;
+  if (type === 'emergency') return cashTotal + depositTotal;
+  return null; // custom：不自動計算，由使用者輸入
+}
+
+/**
+ * 取得目標的「目前金額」
+ * - 自動類型：呼叫 getCurrentByType() 計算
+ * - 自訂目標（custom）：直接讀取使用者輸入的 g.current，不引用任何自動計算值
+ */
+
+function getGoalCurrent(g) {
+  if (g.type === 'custom') return parseFloat(g.current) || 0;
+  return getCurrentByType(g.type) || 0;
+}
+
+/** 進度條顏色 */
+
+function goalBarColor(pct) {
+  if (pct >= 80) return 'var(--green)';
+  if (pct >= 50) return 'var(--orange)';
+  return 'var(--red)';
+}
+
+/** 渲染 Goals 頁 */
+
+function renderGoalsPage() {
+  const list = LS.get(KEY_G);
+  setText('goalsSubtitle', list.length ? list.length + ' 個目標' : '追蹤你的財務里程碑');
+  const c = el('goalsPageList');
+  if (!c) return;
+  if (!list.length) {
+    c.innerHTML = emptyStateHTML('🎯','尚未建立財務目標',['達成率追蹤','剩餘金額試算'],'建立第一個目標','openGoalModal()');
+    return;
+  }
+  c.innerHTML = list.map((g, i) => {
+    const t       = GOAL_TYPES[g.type] || GOAL_TYPES.custom;
+    const target  = parseFloat(g.target) || 0;
+    const current = getGoalCurrent(g);
+    const pct     = target > 0 ? Math.max(0, Math.min(Math.round(current / target * 100), 100)) : 0;
+    const color   = goalBarColor(pct);
+    const remain  = target - current;
+    const remainHTML = remain > 0
+      ? `<div class="goal-remain">還差 ${fmt(remain)} 元</div>`
+      : `<div class="goal-remain goal-remain--done">🎉 已達成目標</div>`;
+    return `<div class="goal-card">
+      <div class="goal-card-header">
+        <div class="goal-card-left">
+          <div class="goal-card-icon ${t.cls}">${t.icon}</div>
+          <div>
+            <div class="goal-card-name">${esc(g.name)}</div>
+            <div class="goal-card-note">${g.note ? esc(g.note) : t.label}</div>
+          </div>
+        </div>
+        <div class="goal-card-pct" style="color:${color}">${pct}%</div>
+      </div>
+      <div class="goal-bar-bg">
+        <div class="goal-bar-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="goal-card-footer">
+        <div class="goal-amounts">
+          ${fmt(Math.round(current))} / ${fmt(target)} 元
+        </div>
+        <div class="goal-actions">
+          <button class="btn-sm" onclick="editGoal(${i})">✎</button>
+          <button class="btn-sm del" onclick="deleteGoal(${i})">✕</button>
+        </div>
+      </div>
+      ${remainHTML}
+    </div>`;
+  }).join('');
+}
+
+/** 首頁摘要：完成率最高的 3 個 */
+
+function renderGoalsSummary() {
+  const list = LS.get(KEY_G);
+  const c = el('homeGoalsSummary');
+  if (!c) return;
+  if (!list.length) {
+    c.innerHTML = '<div class="overview-empty">尚未設定任何目標 · <span style="color:var(--green);cursor:pointer" onclick="goTo(\'goals\')">立即新增 ›</span></div>';
+    return;
+  }
+  // 計算各目標完成率並排序
+  const ranked = list.map((g, i) => {
+    const target  = parseFloat(g.target) || 0;
+    const current = getGoalCurrent(g);
+    const pct     = target > 0 ? Math.max(0, Math.min(Math.round(current / target * 100), 100)) : 0;
+    return { g, i, pct };
+  }).sort((a, b) => b.pct - a.pct).slice(0, 3);
+
+  c.innerHTML = ranked.map(({ g, pct }) => {
+    const t     = GOAL_TYPES[g.type] || GOAL_TYPES.custom;
+    const color = goalBarColor(pct);
+    return `<div class="goal-summary-row">
+      <div class="goal-summary-left">
+        <div class="goal-summary-icon">${t.icon}</div>
+        <div class="goal-summary-name">${esc(g.name)}</div>
+      </div>
+      <div class="goal-summary-right">
+        <div class="goal-mini-bar-bg">
+          <div class="goal-mini-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <div class="goal-summary-pct" style="color:${color}">${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══ Goals Modal ══ */
+
+let _goalEditIdx = -1;
+
+
+function openGoalModal() {
+  _goalEditIdx = -1;
+  el('gfType').value   = 'networth';
+  el('gfName').value   = '';
+  el('gfTarget').value = '';
+  el('gfCurrent').value= '';
+  el('gfNote').value   = '';
+  clearErr('gfError');
+  onGoalTypeChange();
+  setText('goalModalTitle', '新增財務目標');
+  el('goalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => el('gfName').focus(), 320);
+}
+
+
+function editGoal(index) {
+  const list = LS.get(KEY_G);
+  const item = list[index]; if (!item) return;
+  _goalEditIdx = index;
+  el('gfType').value   = item.type   || 'networth';
+  el('gfName').value   = item.name   || '';
+  el('gfTarget').value = item.target || '';
+  el('gfCurrent').value= item.type === 'custom' ? (item.current || '') : '';
+  el('gfNote').value   = item.note   || '';
+  clearErr('gfError');
+  onGoalTypeChange();
+  setText('goalModalTitle', '編輯財務目標');
+  el('goalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+
+function closeGoalModal() {
+  el('goalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+
+function handleGoalOverlayClick(e) {
+  if (e.target === el('goalOverlay')) closeGoalModal();
+}
+
+/** 依目標類型切換「目前金額」欄位的顯示／隱藏 */
+
+function onGoalTypeChange() {
+  const isCustom = el('gfType').value === 'custom';
+  const group = el('gfCurrentGroup');
+  const note  = el('gfAutoNote');
+  if (group) group.style.display = isCustom ? 'flex' : 'none';
+  if (note)  note.style.display  = isCustom ? 'none' : 'block';
+}
+
+
+function saveGoal() {
+  const type   = el('gfType').value;
+  const name   = el('gfName').value.trim();
+  const target = parseFloat(el('gfTarget').value);
+  const note   = el('gfNote').value.trim();
+  if (!name)                  { showFieldErr('gfError', '請輸入目標名稱', 'gfName'); return; }
+  if (isNaN(target)||target<=0){ showFieldErr('gfError', '請輸入有效目標金額（> 0）', 'gfTarget'); return; }
+
+  const item = { type, name, target, note };
+
+  if (type === 'custom') {
+    const current = parseFloat(el('gfCurrent').value);
+    if (isNaN(current) || current < 0) { showFieldErr('gfError', '請輸入有效目前金額（≥ 0）', 'gfCurrent'); return; }
+    item.current = current;
+  }
+
+  const list = LS.get(KEY_G);
+  if (_goalEditIdx >= 0) list[_goalEditIdx] = item; else list.push(item);
+  LS.set(KEY_G, list);
+  closeGoalModal();
+  renderGoalsPage();
+  renderGoalsSummary();
+}
+
+
+function deleteGoal(index) {
+  const list = LS.get(KEY_G);
+  if (!list[index]) return;
+  if (!confirm(`確定刪除「${list[index].name || '此目標'}」？`)) return;
+  list.splice(index, 1);
+  LS.set(KEY_G, list);
+  renderGoalsPage();
+  renderGoalsSummary();
+}
+
+/* ══ 收入類型設定 ══ */
+/* ══════════════════════════════════════════
+   assets.js（v5.5 重構）
+   資產／負債共用的新增／編輯／刪除 Modal 與 CRUD（itemHTML／openModal／saveItem 等），
+   因資產與負債共用同一組 Modal DOM 與函式（透過 _mode 區分），為避免違反「不修改 UI」
+   與「不得出現重複函式」，此共用 CRUD 系統整體置於 assets.js，liabilities.js 呼叫本模組的
+   itemHTML／openModal／editItem／deleteItem 完成負債的新增／編輯／刪除。
+   依賴：storage.js、utils.js、config.js、mortgage.js
+══════════════════════════════════════════ */
+
+function itemHTML(item,mode,index){
+  const t=getType(mode,item.type);
+  const amt=parseFloat(item.amount)||0;
+  const cost=parseFloat(item.cost);
+  const hasReturn=item.type==='etf'&&!isNaN(cost)&&cost>0;
+  const profit=hasReturn?amt-cost:null;
+  const rateReturn=hasReturn?profit/cost:null;
+  const pctStr=hasReturn?fmtPct(rateReturn):null;
+  const pColor=profit!==null&&profit>=0?'var(--green)':'var(--red)';
+  const isMortgage=mode==='debt'&&item.type==='mortgage';
+  const isSimpleLoan=mode==='debt'&&SIMPLE_LOAN_TYPES.includes(item.type);
+  const isLoan=isMortgage||isSimpleLoan;
+  const meta=[];
+  if(item.note)meta.push(esc(item.note));
+  if(hasReturn)meta.push('成本 '+fmt(cost)+' 元');
+  // 貸款類負債的年利率已經在下方貸款資訊卡顯示，這裡不重複列出
+  if(item.rate&&mode==='debt'&&!isLoan)meta.push('年利率 '+parseFloat(item.rate).toFixed(2)+'%');
+
+  const topRow=`<div class="item-card-top">
+    <div class="item-icon ${t.cls}">${t.icon}</div>
+    <div class="item-body">
+      <div class="item-name">${esc(item.name)||t.label}</div>
+      <div class="item-meta">${t.label}${meta.length?' · '+meta.join(' · '):''}</div>
+    </div>
+    <div class="item-right">
+      <div class="item-value ${mode==='asset'?'val--green':'val--red'}">${mode==='debt'?'-':''}${fmt(amt)} 元</div>
+      ${pctStr?`<div class="item-sub" style="color:${pColor}">${pctStr}（${profit>=0?'+':''}${fmt(profit)}）</div>`:''}
+    </div>
+    <div class="item-actions">
+      <button class="btn-sm" onclick="editItem('${mode}',${index})">✎</button>
+      <button class="btn-sm del" onclick="deleteItem('${mode}',${index})">✕</button>
+    </div>
+  </div>`;
+
+  if(!isLoan){
+    return `<div class="item-card fade-in">${topRow}</div>`;
+  }
+
+  if(isSimpleLoan){
+    // ══ 車貸／信貸：維持 v2.4 簡易貸款資訊卡（手動維護每月應繳／剩餘期數） ══
+    const loanRate = parseFloat(item.rate);
+    const monthlyPayment = parseFloat(item.monthlyPayment);
+    const remainingMonths = parseInt(item.remainingMonths, 10);
+    const hasRemaining = !isNaN(remainingMonths);
+
+    const loanDetail = `<div class="loan-detail">
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">剩餘本金</div>
+        <div class="loan-detail-value">${fmt(amt)} 元</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">年利率</div>
+        <div class="loan-detail-value">${!isNaN(loanRate)?loanRate.toFixed(2)+'%':'--'}</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">每月應繳</div>
+        <div class="loan-detail-value">${!isNaN(monthlyPayment)?fmt(monthlyPayment)+' 元':'--'}</div>
+      </div>
+      <div class="loan-detail-item">
+        <div class="loan-detail-label">剩餘期數</div>
+        <div class="loan-detail-value">${hasRemaining?remainingMonths+' 期':'--'}</div>
+      </div>
+    </div>
+    <button class="loan-pay-btn" onclick="payLoanMonth(${index})" ${hasRemaining&&remainingMonths<=0?'disabled':''}>
+      ${hasRemaining&&remainingMonths<=0?'🎉 已繳清期數':'✅ 本月已還款'}
+    </button>`;
+
+    return `<div class="item-card item-card--loan fade-in">${topRow}${loanDetail}</div>`;
+  }
+
+  // ══ 房貸（v3.0 Mortgage Engine） ══
+  if(!isMortgageReady(item)){
+    const loanRate = parseFloat(item.rate);
+    return `<div class="item-card item-card--loan fade-in">${topRow}
+      <div class="loan-detail">
+        <div class="loan-detail-item">
+          <div class="loan-detail-label">剩餘本金</div>
+          <div class="loan-detail-value">${fmt(amt)} 元</div>
+        </div>
+        <div class="loan-detail-item">
+          <div class="loan-detail-label">年利率</div>
+          <div class="loan-detail-value">${!isNaN(loanRate)?loanRate.toFixed(2)+'%':'--'}</div>
+        </div>
+      </div>
+      <div class="mortgage-incomplete-hint">📝 補齊「原始貸款金額」「貸款總期數」「起貸日期」「還款方式」後，即可自動試算每月應繳、已還本金、已付利息與提前還款效果。</div>
+    </div>`;
+  }
+
+  const r = mortgageEngine(getMortgageLoanInput(item));
+  const methodLabel = REPAY_METHOD_LABEL[item.repaymentMethod] || REPAY_METHOD_LABEL.equalPayment;
+
+  const mortgageDetail = `<div class="loan-detail">
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">🏠 原始貸款金額</div>
+      <div class="loan-detail-value">${fmt(r.originalAmount)} 元</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">💰 剩餘本金</div>
+      <div class="loan-detail-value">${fmt(r.remainingPrincipal)} 元</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">📉 已還本金</div>
+      <div class="loan-detail-value">${fmt(r.paidPrincipal)} 元</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">💵 已付利息</div>
+      <div class="loan-detail-value">${fmt(r.paidInterest)} 元</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">📅 每月應繳金額</div>
+      <div class="loan-detail-value">${fmt(r.monthlyPayment)} 元</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">📆 已還期數</div>
+      <div class="loan-detail-value">${r.paidMonths} / ${r.totalMonths} 期</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">📈 年利率</div>
+      <div class="loan-detail-value">${(parseFloat(item.rate)||0).toFixed(2)}%</div>
+    </div>
+    <div class="loan-detail-item">
+      <div class="loan-detail-label">還款方式</div>
+      <div class="loan-detail-value">${methodLabel}</div>
+    </div>
+  </div>
+  <div class="mortgage-progress">
+    <div class="mortgage-progress-label"><span>📊 還款進度</span><span>${r.progressPct}%</span></div>
+    <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${r.progressPct}%;background:var(--purple)"></div></div>
+  </div>
+  <div class="mortgage-prepay">
+    <div class="mortgage-prepay-title">💡 提前還款試算</div>
+    <div class="mortgage-prepay-row">
+      <input class="form-input" id="prepayInput_${index}" type="number" placeholder="例：200000" min="0" inputmode="numeric"/>
+      <button class="btn-sm-action" onclick="simulatePrepay(${index})">試算</button>
+    </div>
+    <div class="mortgage-prepay-result" id="prepayResult_${index}"></div>
+    <div class="mortgage-prepay-hint">⚠️ 僅供試算，不會修改任何原始資料。</div>
+  </div>`;
+
+  return `<div class="item-card item-card--loan item-card--mortgage fade-in">${topRow}${mortgageDetail}</div>`;
+}
+
+/** 提前還款試算按鈕：讀取輸入金額，呼叫 Mortgage Engine 試算並顯示結果（v3.0） */
+
+function renderAssetPage(){
+  const assets=LS.get(KEY_A);
+  const total=assets.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  setText('assetBannerTotal',fmt(total));
+  setText('assetBannerSub',assets.length+' 筆資產');
+
+  const c=el('assetPageList');
+  if(!c)return;
+  if(!assets.length){
+    c.innerHTML=emptyStateHTML('💰','尚未建立任何資產',['淨資產計算','資產配置分析','財務健康評估'],'➕ 新增資產',"openModal('asset')");
+    return;
+  }
+
+  // 依類型分組顯示
+  const ORDER=['cash','etf','house','deposit','other'];
+  const grouped={};
+  assets.forEach((a,i)=>{
+    const k=a.type||'other';
+    if(!grouped[k])grouped[k]=[];
+    grouped[k].push({...a,_idx:i});
+  });
+
+  c.innerHTML=ORDER.filter(k=>grouped[k]).map(k=>{
+    const t=getType('asset',k);
+    const items=grouped[k];
+    const subtotal=items.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+    // v5.0：股票／ETF 類型持續提示改用投資中心管理，避免與投資中心重複計算總資產（純提示，不影響資料）
+    const etfHintHTML = k==='etf'
+      ? `<div class="info-hint-box" style="margin-bottom:8px">💡 建議改用 <span class="info-hint-link" onclick="goTo('investment')">投資中心</span> 管理股票／ETF，可記錄持有數量與價格並自動試算損益、報酬率；若同一筆持股在這裡與投資中心都有輸入，總資產會重複計算。</div>`
+      : '';
+    return`<div class="asset-group">
+      <div class="asset-group-header">
+        <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
+        <div class="asset-group-total val--green">${fmt(subtotal)} 元</div>
+      </div>
+      ${etfHintHTML}
+      ${items.map(a=>itemHTML(a,'asset',a._idx)).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* ══ 渲染負債頁 ══ */
+
+let _mode='asset', _editIdx=-1;
+
+
+function openModal(mode){
+  _mode=mode;_editIdx=-1;
+  clearForm();buildSelect(mode);
+  setText('modalTitle',mode==='asset'?'新增資產':'新增負債');
+  el('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>el('fName').focus(),320);
+}
+
+
+function editItem(mode,index){
+  _mode=mode;_editIdx=index;
+  const list=LS.get(mode==='asset'?KEY_A:KEY_D);
+  const item=list[index];if(!item)return;
+  buildSelect(mode);clearForm();
+  setText('modalTitle',mode==='asset'?'編輯資產':'編輯負債');
+  el('fType').value=item.type||'';
+  el('fName').value=item.name||'';
+  const isAutoMortgage = mode==='debt' && item.type==='mortgage' && getRemainingPrincipalMode(item)==='auto';
+  el('fAmount').value=isAutoMortgage?'':(item.amount||'');
+  el('fCost').value=item.cost||'';
+  el('fRate').value=item.rate||'';
+  el('fNote').value=item.note||'';
+  el('fMonthly').value=item.monthlyPayment||'';
+  el('fRemaining').value=item.remainingMonths||'';
+  el('fOriginal').value=item.originalAmount||'';
+  el('fTotalMonths').value=item.totalMonths||'';
+  el('fStartDate').value=item.startDate||'';
+  if(el('fRepayMethod'))el('fRepayMethod').value=item.repaymentMethod||'equalPayment';
+  if(el('fMonthlySubsidy'))el('fMonthlySubsidy').value=getMortgageSubsidyValue(item)||'';
+  onTypeChange();
+  // v4.2：auto 模式的房貸，欄位保持空白（避免重新儲存時被誤判為手動輸入），
+  // 但以 placeholder 顯示目前自動計算的剩餘本金供參考
+  if(isAutoMortgage){
+    const fAmountEl=el('fAmount');
+    if(fAmountEl) fAmountEl.placeholder='目前自動計算約 '+fmt(item.amount)+' 元（留空繼續自動更新）';
+  }
+  el('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+
+function closeModal(){
+  el('modalOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function handleOverlayClick(e){if(e.target===el('modalOverlay'))closeModal()}
+
+
+function buildSelect(mode){
+  const types=mode==='asset'?ASSET_TYPES:DEBT_TYPES;
+  el('fType').innerHTML=types.map(t=>`<option value="${t.value}">${t.icon} ${t.label}</option>`).join('');
+  onTypeChange();
+}
+
+function onTypeChange(){
+  const v=el('fType').value;
+  const isMortgageType = _mode==='debt' && v==='mortgage';
+  const isSimpleLoanType = _mode==='debt' && SIMPLE_LOAN_TYPES.includes(v);
+  el('fCostGroup').style.display=v==='etf'?'flex':'none';
+  el('fRateGroup').style.display=['mortgage','carloan','personal','credit'].includes(v)?'flex':'none';
+  el('fOriginalGroup').style.display=isMortgageType?'flex':'none';
+  el('fTotalMonthsGroup').style.display=isMortgageType?'flex':'none';
+  el('fStartDateGroup').style.display=isMortgageType?'flex':'none';
+  el('fRepayMethodGroup').style.display=isMortgageType?'flex':'none';
+  el('fMonthlySubsidyGroup').style.display=isMortgageType?'flex':'none';
+  el('fMonthlyGroup').style.display=isSimpleLoanType?'flex':'none';
+  el('fRemainingGroup').style.display=isSimpleLoanType?'flex':'none';
+  const amountLabel=el('fAmountLabel');
+  if(amountLabel)amountLabel.textContent=(isMortgageType||isSimpleLoanType)?'剩餘本金（元）':'金額（元）';
+  el('fName').placeholder=NAME_PH[v]||'請輸入名稱';
+  // v4.2：房貸剩餘本金改為選填，留空時自動計算；顯示提示並更新 placeholder
+  const fAmountEl=el('fAmount');
+  const amountHint=el('fAmountHint');
+  if(isMortgageType){
+    if(fAmountEl && !fAmountEl.value) fAmountEl.placeholder='留空將自動計算目前剩餘本金';
+    if(amountHint) amountHint.style.display='block';
+  } else {
+    if(fAmountEl) fAmountEl.placeholder='例：500000';
+    if(amountHint) amountHint.style.display='none';
+  }
+  // v5.0：股票／ETF 提示改用投資中心管理，避免與投資中心重複計算總資產（純提示，不影響資料與計算）
+  const etfHint=el('fEtfHint');
+  if(etfHint) etfHint.style.display=(_mode==='asset' && v==='etf')?'block':'none';
+}
+
+function clearForm(){
+  ['fName','fAmount','fCost','fRate','fNote','fMonthly','fRemaining','fOriginal','fTotalMonths','fStartDate','fMonthlySubsidy'].forEach(id=>{const e=el(id);if(e)e.value=''});
+  const rm=el('fRepayMethod');if(rm)rm.value='equalPayment';
+  const fe=el('fError');if(fe){fe.textContent='';fe.classList.remove('show')}
+}
+
+function saveItem(){
+  const type=el('fType').value;
+  const name=el('fName').value.trim();
+  const amountRaw=el('fAmount').value.trim();
+  const amount=parseFloat(amountRaw);
+  const cost=parseFloat(el('fCost').value);
+  const rate=parseFloat(el('fRate').value);
+  const note=el('fNote').value.trim();
+  const monthlyPayment=parseFloat(el('fMonthly').value);
+  const remainingMonths=parseInt(el('fRemaining').value,10);
+  const originalAmount=parseFloat(el('fOriginal').value);
+  const totalMonths=parseInt(el('fTotalMonths').value,10);
+  const startDate=el('fStartDate').value;
+  const repaymentMethod=el('fRepayMethod')?el('fRepayMethod').value:'equalPayment';
+  const monthlySubsidy=parseFloat(el('fMonthlySubsidy')?el('fMonthlySubsidy').value:'');
+
+  const isMortgageType = _mode==='debt' && type==='mortgage';
+  const isSimpleLoanType = _mode==='debt' && SIMPLE_LOAN_TYPES.includes(type);
+
+  if(!name){showErr('請輸入名稱','fName');return}
+  // v4.2：房貸的剩餘本金改為選填，留空時將自動計算；其他類型維持必填
+  if(isMortgageType){
+    if(amountRaw!=='' && (isNaN(amount)||amount<0)){showErr('剩餘本金請輸入有效金額（≥ 0），或留空以自動計算','fAmount');return}
+  } else {
+    if(isNaN(amount)||amount<0){showErr('請輸入有效金額（≥ 0）','fAmount');return}
+  }
+  if(!isNaN(rate)&&(rate<0||rate>50)){showErr('利率請輸入合理範圍','fRate');return}
+  // v5.1：每月房貸補貼為選填，若有輸入須為有效非負數
+  if(isMortgageType && !isNaN(monthlySubsidy) && monthlySubsidy<0){showErr('每月房貸補貼請輸入有效數字（≥ 0）','fMonthlySubsidy');return}
+
+  if(isSimpleLoanType && !isNaN(monthlyPayment) && monthlyPayment<0){showErr('每月應繳金額請輸入有效數字（≥ 0）','fMonthly');return}
+  if(isSimpleLoanType && !isNaN(remainingMonths) && remainingMonths<0){showErr('剩餘期數請輸入有效數字（≥ 0）','fRemaining');return}
+  if(isMortgageType && !isNaN(originalAmount) && originalAmount<0){showErr('原始貸款金額請輸入有效數字（≥ 0）','fOriginal');return}
+  if(isMortgageType && !isNaN(totalMonths) && totalMonths<0){showErr('貸款總期數請輸入有效數字（≥ 0）','fTotalMonths');return}
+
+  const item={type,name};
+  if(!isNaN(cost)&&cost>=0)item.cost=cost;
+  if(!isNaN(rate)&&rate>=0)item.rate=rate;
+  if(note)item.note=note;
+  if(isSimpleLoanType){
+    if(!isNaN(monthlyPayment)&&monthlyPayment>=0)item.monthlyPayment=monthlyPayment;
+    if(!isNaN(remainingMonths)&&remainingMonths>=0)item.remainingMonths=remainingMonths;
+  }
+  if(isMortgageType){
+    if(!isNaN(originalAmount)&&originalAmount>=0)item.originalAmount=originalAmount;
+    if(!isNaN(totalMonths)&&totalMonths>=0)item.totalMonths=totalMonths;
+    if(startDate)item.startDate=startDate;
+    item.repaymentMethod=repaymentMethod;
+    // v5.1：每月房貸補貼，留空或 0 則不寫入（讀取端一律以 parseFloat(...)||0 處理，等同 0 元，維持向下相容）
+    if(!isNaN(monthlySubsidy)&&monthlySubsidy>0)item.monthlyMortgageSubsidy=monthlySubsidy;
+  }
+
+  // v4.2：依剩餘本金欄位是否留空，決定 auto／manual 模式（功能三：手動輸入優先，功能四：模式標記）
+  if(isMortgageType){
+    if(amountRaw===''){
+      item.remainingPrincipalMode='auto';
+      // 直接呼叫既有 Mortgage Engine 計算初始值，不建立第二套公式；之後每次載入由 syncAutoMortgagePrincipals() 依當天日期自動更新
+      item.amount = isMortgageReady(item) ? mortgageEngineAutoRemaining(item) : 0;
+    } else {
+      item.amount = amount;
+      item.remainingPrincipalMode='manual';
+    }
+  } else {
+    item.amount = amount;
+  }
+
+  const key=_mode==='asset'?KEY_A:KEY_D;
+  const list=LS.get(key);
+  if(_editIdx>=0)list[_editIdx]=item;else list.push(item);
+  LS.set(key,list);
+  closeModal();renderAll();
+}
+
+
+function deleteItem(mode,index){
+  const key=mode==='asset'?KEY_A:KEY_D;
+  const list=LS.get(key);
+  if(!list[index])return;
+  if(!confirm(`確定刪除「${list[index].name||'此項目'}」？`))return;
+  list.splice(index,1);LS.set(key,list);renderAll();
+}
+
+/* ══════════════════════════════════════════
+   開發工具（v2.3）
+   僅供開發／驗收測試使用，不影響一般使用者功能
+══════════════════════════════════════════ */
+
+/** 折疊區塊開關 */
+/* ══════════════════════════════════════════
+   liabilities.js（v5.5 重構）
+   負債頁 Render、房貸概況、車貸／信貸「本月已還款」
+   實際新增／編輯／刪除負債的 CRUD 由 assets.js 共用提供（詳見 assets.js 說明）
+   依賴：storage.js、utils.js、config.js、mortgage.js、assets.js（itemHTML）
+══════════════════════════════════════════ */
+
+function renderDebtPage(){
+  const debts=LS.get(KEY_D);
+  const total=debts.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  setText('debtBannerTotal',fmt(total));
+  setText('debtBannerSub',debts.length+' 筆負債');
+
+  // 每月貸款支出（v3.0）：房貸（Mortgage Engine 自動計算）＋車貸＋信貸（手動維護），信用卡與其他負債不列入
+  const loanMonthlyTotal = debts.reduce((s,d)=>{
+    if(d.type==='mortgage') return s + (isMortgageReady(d) ? mortgageEngine(getMortgageLoanInput(d)).monthlyPayment : 0);
+    if(SIMPLE_LOAN_TYPES.includes(d.type)) return s + (parseFloat(d.monthlyPayment)||0);
+    return s;
+  },0);
+  setText('loanMonthlyTotal', loanMonthlyTotal ? fmt(loanMonthlyTotal) : '--');
+
+  const c=el('debtPageList');
+  if(!c)return;
+  if(!debts.length){
+    c.innerHTML=emptyStateHTML('📉','尚未建立任何負債',['淨資產計算','負債比分析','財務健康評估'],'➕ 新增負債',"openModal('debt')");
+    return;
+  }
+
+  // 依類型分組
+  const ORDER=['mortgage','carloan','personal','credit','other'];
+  const grouped={};
+  debts.forEach((d,i)=>{
+    const k=d.type||'other';
+    if(!grouped[k])grouped[k]=[];
+    grouped[k].push({...d,_idx:i});
+  });
+
+  c.innerHTML=ORDER.filter(k=>grouped[k]).map(k=>{
+    const t=getType('debt',k);
+    const items=grouped[k];
+    const subtotal=items.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+    return`<div class="asset-group">
+      <div class="asset-group-header">
+        <div class="asset-group-label"><span class="asset-group-icon">${t.icon}</span>${t.label}</div>
+        <div class="asset-group-total val--red">${fmt(subtotal)} 元</div>
+      </div>
+      ${items.map(d=>itemHTML(d,'debt',d._idx)).join('')}
+    </div>`;
+  }).join('');
+}
+
+/** 本月已還款（v2.4）：僅扣除一個月期數，不動任何本金／攤還計算
+ *  這裡刻意保持單純，v2.5 會在此基礎上加入本息／本金攤還與提前還款邏輯 */
+
+function payLoanMonth(index){
+  const list = LS.get(KEY_D);
+  const item = list[index];
+  if(!item) return;
+  const current = parseInt(item.remainingMonths, 10);
+  if(isNaN(current) || current <= 0){
+    alert('尚未設定剩餘期數，或期數已還清');
+    return;
+  }
+  item.remainingMonths = current - 1;
+  LS.set(KEY_D, list);
+  renderDebtPage();
+}
+
+/* ══ 每月生活費（v2.1） ══
+   單一數字，不分類、不記帳，僅新增這一個 localStorage key */
+
+function renderMortgageSummary(){
+  const debts = LS.get(KEY_D);
+  const mortgages = debts.filter(d=>d.type==='mortgage');
+  const section = el('mortgageSummarySection');
+  if(!section) return;
+
+  if(!mortgages.length){
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+
+  let totalRemaining=0, totalMonthly=0, totalPaidPrincipal=0, totalPaidInterest=0, totalOriginal=0, readyCount=0;
+  mortgages.forEach(m=>{
+    totalRemaining += parseFloat(m.amount)||0;
+    if(isMortgageReady(m)){
+      const r = mortgageEngine(getMortgageLoanInput(m));
+      totalMonthly += r.monthlyPayment;
+      totalPaidPrincipal += r.paidPrincipal;
+      totalPaidInterest += r.paidInterest;
+      totalOriginal += r.originalAmount;
+      readyCount++;
+    }
+  });
+
+  setText('mortgageSumRemaining', fmt(totalRemaining));
+  setText('mortgageSumMonthly', readyCount ? fmt(totalMonthly) : '--');
+  setText('mortgageSumPaidPrincipal', readyCount ? fmt(totalPaidPrincipal) : '--');
+  setText('mortgageSumPaidInterest', readyCount ? fmt(totalPaidInterest) : '--');
+
+  const progressPct = (readyCount && totalOriginal>0) ? Math.round(totalPaidPrincipal/totalOriginal*100) : 0;
+  setText('mortgageSumProgress', readyCount ? progressPct+'%' : '--');
+  const fill = el('mortgageSumProgressFill');
+  if(fill) fill.style.width = (readyCount?progressPct:0)+'%';
+}
+
+/* ══════════════════════════════════════════
+   📊 財務健康（v3.1）
+   完全利用現有資料計算，不新增任何 localStorage
+══════════════════════════════════════════ */
+
+/** 分級小工具：回傳 {emoji, color} */
 
