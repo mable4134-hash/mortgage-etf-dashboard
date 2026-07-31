@@ -4,6 +4,23 @@
 
 ---
 
+## v5.5.2 － UI 修正版（僅修改介面，不變更任何計算邏輯）
+
+### Fixed
+- 📈 投資卡片新增標的辨識：卡片左上角（圖示右側）新增顯示「股票代號」（第一行）與「名稱」（第二行）。純顯示層解析既有 `name` 欄位（例如「0050 元大台灣50」→ 代號 0050／名稱 元大台灣50），未新增任何欄位、未修改 localStorage 結構；若無法辨識出代號，則僅顯示名稱一行
+- 投資卡片明細區「平均成本」「最新價格」改為統一保留兩位小數顯示（新增 `fmtPrice()` 純格式化函式，定義於 `entities.js`）；金額類欄位（市值、成本、損益）維持原本千分位整數格式不變
+- 修正手機版編輯／刪除按鈕跑版問題：`.item-right`（金額／損益文字）新增最大寬度與文字截斷（ellipsis），`.item-actions` 固定不縮小，確保按鈕永遠留在卡片內、不遮住內容、不超出畫面（此為共用樣式，資產／負債／投資／收入／支出／Goals 卡片皆一併修正）
+- 修正首頁頂部更新日期偶發顯示「2026年/月」空白月份問題：原本仰賴瀏覽器 `toLocaleDateString('zh-TW',{month:'long'})`，在部分行動裝置瀏覽器會回傳空值；改為手動組字串 `YYYY年M月`，不再依賴瀏覽器 locale 資料
+- 投資卡片明細區移除與卡片右上角大數字重複的「目前市值」欄位，改顯示「持股占比」（該筆投資市值 ÷ 全部投資市值），無法計算時顯示 `--`，不強制顯示重複資訊
+- **Footer 版本號改為自動同步**：原本 6 個頁面（首頁／資產／負債／投資／工具／Goals）Footer 的「Version X.X」是寫死文字，每次升版需要額外修改 `index.html`；本次改為新增 `id`（`footerVersion1~6`），由 `renderSystemInfo()` 讀取 `core.js` 的 `APP_VERSION` 統一帶入，之後升版只需修改 `core.js` 一處，所有頁面 Footer 會自動同步，不再需要額外異動 `index.html`
+- 順手修正既有小 bug：投資頁 Footer 的 GitHub 連結（`footerGithubLink6`）原本未被列入 `renderSystemInfo()` 的迴圈中，導致該連結一直沒有作用（href 停留在 `#`），本次一併補上
+
+### Compatibility
+- 本版本僅修改 UI／顯示層，未修改任何計算公式：`investmentItemCalc()`／`getInvestmentTotals()`／Mortgage Engine／財務健康／Goals 等核心函式逐字元比對，與 v5.5 完全一致（`mortgage.js`／`finance.js` 兩檔案 md5 與 v5.5 相同，完全未變動）
+- localStorage 結構未修改，`investments`／`nw_assets`／`nw_debts` 等既有 key 與欄位皆未新增或異動
+- 新增、編輯、刪除、價格更新等既有互動流程未修改，僅新增／編輯／刪除三個按鈕沿用既有 `editInvestment()`／`deleteInvestment()`／`saveInvestment()` 函式，呼叫方式未變
+- 已完成健康檢查：Node.js 語法驗證（單一模組＋合併後）、HTML div 標籤配對（354/354）、無重複函式名稱、`renderAll()` 涵蓋率驗證、HTML↔JS ID／onclick 雙向交叉比對（含新增的 6 個 `footerVersionN` id）皆通過
+
 ## v5.5 － Refactor Edition（架構重構版）
 
 ### ♻️ Refactor
