@@ -120,9 +120,9 @@ const EXPENSE_TYPES={
 const NAME_PH={cash:'例：第一銀行活存、iLEO',etf:'例：0050 元大台灣50',house:'例：台北市房屋',deposit:'例：一銀定存 2 年期',mortgage:'例：玉山房貸',carloan:'例：中租車貸',personal:'例：國泰信貸',credit:'例：台新信用卡'};
 
 
-const APP_VERSION='5.5';
+const APP_VERSION='5.5.2';
 
-const APP_UPDATE_DATE='2026-07-27';
+const APP_UPDATE_DATE='2026-07-30';
 
 const GITHUB_REPO_URL='https://github.com/mable4134-hash/mortgage-etf-dashboard';
 
@@ -215,5 +215,4 @@ function clearErr(id){const e=el(id);if(!e)return;e.textContent='';e.classList.r
 /* ══ Modal ══ */
 
 function showErr(msg,fieldId){const e=el('fError');if(!e)return;e.textContent='⚠ '+msg;e.classList.add('show');if(fieldId)scrollAndFocusField(fieldId)}
-
 
