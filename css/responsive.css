@@ -12,6 +12,6 @@
   .item-card-top{flex-wrap:nowrap;overflow:hidden}
   .item-icon{flex-shrink:0}
   .item-body{flex:1 1 auto;min-width:64px}
-  .item-right{max-width:34%;flex-shrink:1;min-width:0}
+  .item-right{flex-shrink:0}
   .item-actions{flex-shrink:0}
 }
