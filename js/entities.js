@@ -6,6 +6,29 @@
 
 function getInvType(val){ return INVESTMENT_TYPES.find(t=>t.value===val) || INVESTMENT_TYPES.at(-1); }
 
+/** v5.5.2：價格類欄位（平均成本／最新價格等）統一保留兩位小數顯示，純格式化，不影響任何計算或儲存值 */
+
+function fmtPrice(value){
+  if(value===null||value===undefined||isNaN(value)) return '--';
+  return new Intl.NumberFormat('zh-TW',{minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
+}
+
+/** v5.5.2：純顯示層輔助函式，從既有 name 欄位解析「代號」與「名稱」兩行顯示。
+ *  不新增任何欄位、不修改 localStorage 結構，僅在渲染時嘗試解析既有字串。
+ *  支援台股常見代號格式：
+ *    - 純數字代號（例：0050、00935）
+ *    - 數字＋英文字尾（例：00631L、00981A，常見於槓桿／反向／主動式 ETF）
+ *    - 純英文代號（例：VOO、QQQ）
+ *  規則：字串開頭若符合上述代號格式，且後面接空白與其餘文字，則視為「代號 + 名稱」；
+ *  否則（例如純中文名稱、或代號後沒有空白與名稱）視為只有名稱，代號回傳 null。 */
+
+function parseInvestmentTicker(name){
+  const str = String(name||'').trim();
+  const m = str.match(/^([0-9]{4,6}[A-Za-z]{0,2}|[A-Z]{1,5})\s+(.+)$/);
+  if(m) return { code:m[1], name:m[2] };
+  return { code:null, name:str };
+}
+
 /** 單筆投資的自動計算：投資成本／目前市值／未實現損益／報酬率（全部即時計算，不可手動輸入） */
 
 function investmentItemCalc(item){
@@ -46,11 +69,19 @@ function investmentItemHTML(item, index){
   const t = getInvType(item.type);
   const c = investmentItemCalc(item);
   const plColor = c.pl >= 0 ? 'var(--green)' : 'var(--red)';
+  // v5.5.2：純顯示解析，從既有 name 欄位拆出代號／名稱兩行；不新增欄位、不影響儲存資料
+  const parsed = parseInvestmentTicker(item.name);
+  const nameBlockHTML = parsed.code
+    ? `<div class="investment-code">${esc(parsed.code)}</div><div class="investment-name">${esc(parsed.name)||t.label}</div>`
+    : `<div class="investment-code">${esc(parsed.name)||t.label}</div>`;
+  // v5.5.2：卡片右上角已有市值大數字，明細區改顯示「持股占比」，避免重複資訊；無法計算時顯示 --
+  const totals = getInvestmentTotals();
+  const sharePct = totals.totalMarketValue > 0 ? (c.marketValue/totals.totalMarketValue*100).toFixed(1)+'%' : '--';
   return `<div class="item-card item-card--loan fade-in">
     <div class="item-card-top">
       <div class="item-icon ${t.cls}">${t.icon}</div>
       <div class="item-body">
-        <div class="item-name">${esc(item.name)||t.label}</div>
+        ${nameBlockHTML}
         <div class="item-meta">${t.label} · 持有 ${c.quantity} 單位</div>
       </div>
       <div class="item-right">
@@ -69,19 +100,19 @@ function investmentItemHTML(item, index){
       </div>
       <div class="loan-detail-item">
         <div class="loan-detail-label">平均成本</div>
-        <div class="loan-detail-value">${fmt(c.avgCost)} 元</div>
+        <div class="loan-detail-value">${fmtPrice(c.avgCost)} 元</div>
       </div>
       <div class="loan-detail-item">
         <div class="loan-detail-label">最新價格</div>
-        <div class="loan-detail-value">${fmt(c.price)} 元</div>
+        <div class="loan-detail-value">${fmtPrice(c.price)} 元</div>
       </div>
       <div class="loan-detail-item">
         <div class="loan-detail-label">投資成本</div>
         <div class="loan-detail-value">${fmt(c.cost)} 元</div>
       </div>
       <div class="loan-detail-item">
-        <div class="loan-detail-label">目前市值</div>
-        <div class="loan-detail-value val--blue">${fmt(c.marketValue)} 元</div>
+        <div class="loan-detail-label">持股占比</div>
+        <div class="loan-detail-value val--blue">${sharePct}</div>
       </div>
       <div class="loan-detail-item">
         <div class="loan-detail-label">未實現損益</div>
@@ -965,4 +996,3 @@ function renderMortgageSummary(){
 ══════════════════════════════════════════ */
 
 /** 分級小工具：回傳 {emoji, color} */
-
