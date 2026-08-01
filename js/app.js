@@ -348,12 +348,11 @@ function renderSystemInfo(){
   const ghLink = el('sysGithubLink'); if(ghLink) ghLink.href = GITHUB_REPO_URL;
   const readmeLink = el('sysReadmeLink'); if(readmeLink) readmeLink.href = GITHUB_REPO_URL + '/blob/main/README.md';
   const changelogLink = el('sysChangelogLink'); if(changelogLink) changelogLink.href = GITHUB_REPO_URL + '/blob/main/CHANGELOG.md';
-  // v5.5.2：footerGithubLink6（投資頁）原本漏未列入，導致投資頁 GitHub 連結一直沒有作用，順手一併修正
+  // v5.5.2：footerGithubLink6（投資頁）原本漏未列入，導致該連結一直沒有作用，本次一併補上
   ['footerGithubLink1','footerGithubLink2','footerGithubLink3','footerGithubLink4','footerGithubLink5','footerGithubLink6'].forEach(id=>{
     const a = el(id); if(a) a.href = GITHUB_REPO_URL;
   });
-  // v5.5.2：6 個頁面 Footer 的版本號改為自動讀取 APP_VERSION，不再是寫死文字；
-  // 之後升版只需修改 core.js 的 APP_VERSION 一處，所有頁面 Footer 會自動同步
+  // v5.5.2：6 個頁面 Footer 的版本號改為自動讀取 APP_VERSION，之後升版只需修改 core.js 一處
   ['footerVersion1','footerVersion2','footerVersion3','footerVersion4','footerVersion5','footerVersion6'].forEach(id=>{
     setText(id, 'Version '+APP_VERSION);
   });
@@ -487,7 +486,7 @@ function clearAllData(){
 function init(){
   const now=new Date();
   const hd=el('hDate');
-  // v5.5.2：部分行動裝置瀏覽器的 toLocaleDateString('zh-TW',{month:'long'}) 會產生空白月份（顯示「2026年/月」），
+  // v5.5.2：toLocaleDateString('zh-TW',{month:'long'}) 在部分行動裝置瀏覽器會回傳空月份（顯示「2026年/月」），
   // 改為手動組字串，確保穩定輸出「YYYY年M月」，不依賴瀏覽器 locale 資料
   const dateStr=`${now.getFullYear()}年${now.getMonth()+1}月`;
   if(hd)hd.innerHTML=`<div>${dateStr}</div><div>更新 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</div>`;
