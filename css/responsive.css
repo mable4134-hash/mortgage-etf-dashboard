@@ -6,3 +6,12 @@
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(min-width:600px){.page{padding:24px 24px calc(var(--nav-h)+24px)}.summary-net-value{font-size:clamp(40px,6vw,56px);word-break:normal;letter-spacing:-2px}.summary-block-value{font-size:clamp(16px,2.5vw,20px);word-break:normal}}
 
+/* v5.5.2：手機版卡片頂部排版（icon／代號名稱／市值／編輯刪除按鈕），
+   確保四個區塊都留在卡片內，不橫向超出畫面，item-body 保留最小可視寬度不被壓成 0 */
+@media(max-width:599px){
+  .item-card-top{flex-wrap:nowrap;overflow:hidden}
+  .item-icon{flex-shrink:0}
+  .item-body{flex:1 1 auto;min-width:64px}
+  .item-right{max-width:34%;flex-shrink:1;min-width:0}
+  .item-actions{flex-shrink:0}
+}
